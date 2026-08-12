@@ -2,6 +2,7 @@ import type { Save } from "@lobe/shared";
 import { intentById } from "@lobe/shared";
 import { AlertCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { Button } from "@lobe/ui/components/button";
 import type { CSSProperties } from "react";
 
 import type { LobeApi } from "../api";
@@ -28,7 +29,8 @@ export function SaveCard({
 
   return (
     <article className="save-card">
-      <button
+      <Button
+        variant="ghost"
         type="button"
         className="save-card-button"
         aria-label={`Open save by ${save.author.name}`}
@@ -79,7 +81,7 @@ export function SaveCard({
             <time>{shortDate(save.createdAt)}</time>
           </div>
         </div>
-      </button>
+      </Button>
     </article>
   );
 }

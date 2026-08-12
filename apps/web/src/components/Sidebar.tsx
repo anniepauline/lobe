@@ -11,6 +11,7 @@ import {
   type IntentId,
   type TasteProfile,
 } from "@lobe/shared";
+import { Button } from "@lobe/ui/components/button";
 import type { CSSProperties } from "react";
 
 import { intentIcons } from "../icons";
@@ -39,7 +40,8 @@ export function Sidebar({
       </a>
 
       <nav className="side-nav" aria-label="Filter saves">
-        <button
+        <Button
+          variant="ghost"
           type="button"
           className={filter === null ? "side-item active" : "side-item"}
           onClick={() => onChange(null)}
@@ -47,8 +49,9 @@ export function Sidebar({
           <HugeiconsIcon icon={BookmarkCheck02Icon} size={16} />
           <span>All saves</span>
           <b>{profile?.totalSaves ?? 0}</b>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           type="button"
           className={`side-item review-item${filter === "review" ? " active" : ""}${reviewCount > 0 ? " attention" : ""}`}
           onClick={() => onChange("review")}
@@ -56,13 +59,14 @@ export function Sidebar({
           <HugeiconsIcon icon={AlertCircleIcon} size={16} />
           <span>Needs review</span>
           <b>{reviewCount}</b>
-        </button>
+        </Button>
 
         <div className="side-label">Why you save</div>
         {INTENT_IDS.map((intent) => {
           const Icon = intentIcons[intent];
           return (
-            <button
+            <Button
+              variant="ghost"
               key={intent}
               type="button"
               className={filter === intent ? "side-item active" : "side-item"}
@@ -74,7 +78,7 @@ export function Sidebar({
               <HugeiconsIcon icon={Icon} size={16} />
               <span>{intentById[intent].label}</span>
               <b>{profile?.intentCounts[intent] ?? 0}</b>
-            </button>
+            </Button>
           );
         })}
       </nav>
@@ -114,19 +118,27 @@ export function Sidebar({
       )}
 
       <div className="side-footer">
-        <a
+        <Button asChild variant="ghost" className="side-item">
+          <a
+            href="https://x.com/home"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open X"
+          >
+            <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />
+            <span>Open X</span>
+          </a>
+        </Button>
+        <Button
+          variant="ghost"
+          type="button"
           className="side-item"
-          href="https://x.com/home"
-          target="_blank"
-          rel="noreferrer"
+          aria-label="Open connection settings"
+          onClick={onOpenSettings}
         >
-          <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />
-          <span>Open X</span>
-        </a>
-        <button type="button" className="side-item" onClick={onOpenSettings}>
           <HugeiconsIcon icon={Settings02Icon} size={16} />
           <span>Connection</span>
-        </button>
+        </Button>
       </div>
     </aside>
   );

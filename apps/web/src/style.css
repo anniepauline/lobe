@@ -391,10 +391,13 @@ a {
   display: block;
   overflow: hidden;
   width: 100%;
+  height: auto;
   border: 1px solid var(--line);
   border-radius: 14px;
+  padding: 0;
   background: var(--surface);
   text-align: left;
+  white-space: normal;
   transition:
     border-color 140ms ease,
     background-color 140ms ease;

@@ -12,6 +12,8 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@lobe/ui/components/dialog";
+import { Button } from "@lobe/ui/components/button";
+import { Input } from "@lobe/ui/components/input";
 import { Skeleton } from "@lobe/ui/components/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -248,7 +250,7 @@ export default function App() {
       <main className="library">
         <label className="hero-search">
           <HugeiconsIcon icon={Search01Icon} size={21} strokeWidth={1.7} />
-          <input
+          <Input
             ref={searchRef}
             type="search"
             value={query}
@@ -257,14 +259,16 @@ export default function App() {
             aria-label="Search saves"
           />
           {query ? (
-            <button
+            <Button
+              variant="ghost"
+              size="icon-xs"
               type="button"
               className="search-clear"
               aria-label="Clear search"
               onClick={() => setQuery("")}
             >
               <HugeiconsIcon icon={Cancel01Icon} size={15} />
-            </button>
+            </Button>
           ) : (
             <kbd>/</kbd>
           )}
@@ -280,9 +284,14 @@ export default function App() {
         {error && (
           <div className="error-banner" role="alert">
             <span>{error}</span>
-            <button type="button" onClick={() => setShowConnection(true)}>
+            <Button
+              variant="link"
+              size="sm"
+              type="button"
+              onClick={() => setShowConnection(true)}
+            >
               Check connection
-            </button>
+            </Button>
           </div>
         )}
 
@@ -309,14 +318,15 @@ export default function App() {
               ))}
             </div>
             {nextCursor && (
-              <button
+              <Button
+                variant="outline"
                 type="button"
                 className="load-more"
                 disabled={loadingMore}
                 onClick={() => void loadMore()}
               >
                 {loadingMore ? "Loading…" : "Load more"}
-              </button>
+              </Button>
             )}
           </>
         ) : (
@@ -389,14 +399,11 @@ function EmptyState({
       <h2>{heading}</h2>
       <p>{detail}</p>
       {!query && !filter && (
-        <a
-          className="empty-cta"
-          href="https://x.com/home"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Bookmark something on X
-        </a>
+        <Button asChild size="lg" className="empty-cta">
+          <a href="https://x.com/home" target="_blank" rel="noreferrer">
+            Bookmark something on X
+          </a>
+        </Button>
       )}
     </div>
   );

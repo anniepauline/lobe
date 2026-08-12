@@ -90,7 +90,9 @@ export function SaveDetail({
         </SheetDescription>
 
         <div className="detail-topbar">
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             type="button"
             className="detail-close"
             aria-label="Close details"
@@ -106,16 +108,13 @@ export function SaveDetail({
               icon={Cancel01Icon}
               size={17}
             />
-          </button>
-          <a
-            className="detail-source"
-            href={save.canonicalUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open on X
-            <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} />
-          </a>
+          </Button>
+          <Button asChild variant="ghost" size="sm" className="detail-source">
+            <a href={save.canonicalUrl} target="_blank" rel="noreferrer">
+              Open on X
+              <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} />
+            </a>
+          </Button>
         </div>
 
         <div className="detail-scroll">
@@ -164,7 +163,9 @@ export function SaveDetail({
                   const Icon = intentIcons[intent];
                   const selected = feedbackIntent === intent;
                   return (
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       key={intent}
                       type="button"
                       className={
@@ -183,7 +184,7 @@ export function SaveDetail({
                     >
                       <HugeiconsIcon icon={Icon} size={15} />
                       {intentById[intent].label}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
