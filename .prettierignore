@@ -1,0 +1,6 @@
+bun.lock
+lobe-brainstorm-report.html
+node_modules
+dist
+.output
+.wxt

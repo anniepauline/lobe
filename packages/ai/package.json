@@ -1,0 +1,19 @@
+{
+  "name": "@lobe/ai",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "bun test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@lobe/shared": "workspace:*",
+    "@ai-sdk/openai": "^4.0.41",
+    "ai": "^7.0.63",
+    "zod": "^4.4.3"
+  }
+}

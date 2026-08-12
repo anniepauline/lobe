@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Lobe — Brainstorm Report</title>
+<style>
+  :root {
+    --bg: #0e0f12;
+    --surface: #16181d;
+    --border: #262a32;
+    --text: #e8eaed;
+    --muted: #9aa0ab;
+    --accent: #7c9cff;
+    --good: #4cc38a;
+    --warn: #e5a54b;
+    --bad: #e5644b;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --border: #e4e6ea;
+      --text: #1b1d21;
+      --muted: #5c6470;
+      --accent: #3b5bdb;
+      --good: #18794e;
+      --warn: #9a6700;
+      --bad: #b42318;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 48px 24px 96px; }
+  header { margin-bottom: 40px; }
+  h1 { font-size: 28px; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 14px; }
+  h2 {
+    font-size: 19px;
+    margin: 44px 0 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    letter-spacing: -0.01em;
+  }
+  h3 { font-size: 15px; margin: 20px 0 6px; }
+  p { margin: 10px 0; }
+  ul, ol { margin: 10px 0; padding-left: 22px; }
+  li { margin: 6px 0; }
+  strong { font-weight: 650; }
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 18px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 14.5px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+  }
+  .tag.good { color: var(--good); }
+  .tag.warn { color: var(--warn); }
+  .tag.bad { color: var(--bad); }
+  .verdict {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-top: 36px;
+  }
+  code {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font: 13.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Lobe — Brainstorm Report</h1>
+    <div class="sub">Intelligent bookmarking extension with an AI taste layer · August 12, 2026</div>
+  </header>
+
+  <div class="callout">
+    <strong>The core insight:</strong> this is not a smart bookmarks product. It is a
+    <strong>personal taste layer for AI</strong>. Bookmarks today are a write-only graveyard:
+    you save and never return. The twist here is that every save becomes queryable context,
+    exposed to Claude and ChatGPT via MCP, that knows <em>why</em> you saved something.
+    That is the moat. The save button is just the intake pipe.
+  </div>
+
+  <h2>Why this is different</h2>
+  <p>
+    Existing tools (mymind, Raindrop, Fabric) store things. None of them feed your taste back
+    into the AI tools where you actually think and build. The loop that matters:
+  </p>
+  <ol>
+    <li><strong>Save</strong> anywhere with near-zero friction, ideally through a native-feeling button injected into the page.</li>
+    <li><strong>Auto-organize</strong> with intent, not just topic: "want to try this tool" vs. "want to build something similar" are different categories even for the same tweet.</li>
+    <li><strong>Talk to it</strong>: semantic search, and an MCP server so any AI assistant can pull from your saves and your taste profile.</li>
+  </ol>
+  <p>
+    The demo that sells the whole product: <em>"Claude, what tools did I save last month that I
+    wanted to clone?"</em> and it answers correctly.
+  </p>
+
+  <h2>The four genuinely hard problems</h2>
+
+  <h3>1. Universal DOM injection <span class="tag warn">engineering treadmill</span></h3>
+  <p>
+    "Scan any site, find where the thread lives, place or replace the bookmark button" is a
+    selector-discovery problem. Twitter changes its markup weekly. The feasible approach: an LLM
+    derives a selector recipe once per site and layout, the recipe is cached and shared across
+    users, and when it breaks the system re-derives and pushes the fix to everyone. This is
+    novel and workable, but it is a permanent maintenance cost. Budget for it forever.
+  </p>
+
+  <h3>2. Content capture <span class="tag good">solvable cheaply</span></h3>
+  <p>
+    The X API is expensive, Instagram is walled, articles are paywalled. The sidestep: the user
+    is already logged in and the content is already on screen. Snapshot the DOM text plus a
+    screenshot at the moment of the save click. No platform APIs needed. This is a big
+    simplification and it works everywhere.
+  </p>
+
+  <h3>3. Intent inference <span class="tag good">good design already sketched</span></h3>
+  <p>
+    Asking a question on every save kills the UX. Use a confidence threshold: auto-assign when
+    the model is sure, show a one-tap chip ("Try it" / "Build similar" / "Reference") when it is
+    not. Onboarding seeds the priors, ongoing feedback tunes them. Over time the questions
+    disappear. This matches the original description and is the right shape.
+  </p>
+
+  <h3>4. Passive interest detection <span class="tag bad">cut from v1</span></h3>
+  <p>
+    "It figures out you like the website" means the extension reads every page you visit. That
+    is a scary permission, a slow Chrome Web Store review, a real privacy story to defend, and a
+    ruinous LLM bill if pages are scanned in the cloud. Ship explicit-save only in v1. Passive
+    detection is a v3 feature, and probably only viable with an on-device model.
+  </p>
+
+  <h2>Competitive landscape</h2>
+  <table>
+    <tr><th>Product</th><th>What it does</th><th>What it lacks</th></tr>
+    <tr>
+      <td><strong>mymind</strong></td>
+      <td>Closest competitor. Auto-categorized, no folders, visual-first.</td>
+      <td>No intent capture, no MCP/AI integration, no in-page save buttons.</td>
+    </tr>
+    <tr>
+      <td><strong>Raindrop</strong></td>
+      <td>Folders and tags, manual organization, power-user oriented.</td>
+      <td>All the organizing burden is on the user. No intelligence.</td>
+    </tr>
+    <tr>
+      <td><strong>Rewind / Limitless</strong></td>
+      <td>Capture everything you see automatically.</td>
+      <td>No curation signal. A deliberate save is a high-value data point; recording everything drowns it.</td>
+    </tr>
+  </table>
+  <p>
+    The gap is real, and the window is open because MCP adoption is fresh. Nobody owns
+    "your saves as AI context" yet.
+  </p>
+
+  <h2>MVP cut</h2>
+  <ol>
+    <li>
+      <strong>Extension</strong> (WXT, TypeScript): keyboard shortcut and context-menu save that
+      work on every site. Injected native-feeling button on exactly three hand-tuned targets:
+      X, YouTube, and generic articles via Readability. Hand-write the recipes; the
+      auto-discovery magic comes later, after the recipe format is proven.
+    </li>
+    <li>
+      <strong>Save pipeline</strong>: DOM snapshot → Haiku categorizes and extracts intent →
+      embed → Postgres + pgvector. One service, no microservices.
+    </li>
+    <li>
+      <strong>Web app</strong>: semantic search and category browsing.
+    </li>
+    <li>
+      <strong>MCP server</strong> reading the same database, exposing
+      <code>search_saves</code> and <code>get_taste_profile</code>. This is the launch demo.
+    </li>
+    <li>
+      <strong>New-tab homepage</strong> ("thoughts of the day"): v2. Good retention hook, not
+      the core loop.
+    </li>
+  </ol>
+  <div class="callout">
+    <strong>Sequencing rule:</strong> the save → auto-organize → talk-to-it loop must feel like
+    magic before anything passive or homepage-shaped gets built.
+  </div>
+
+  <h2>Name</h2>
+  <p>
+    <strong>Lobe</strong> is short, the brain metaphor fits, and it is brandable. Two problems:
+    Microsoft previously owned Lobe (lobe.ai, the ML training tool, shut down in 2022), so a
+    trademark and domain check is required; and your own gut already flags it as weird. The
+    demographic split from your polling (Gen Z → Lobe, 25+ → In-N-Out, 35+ → Synapsis) is
+    interesting but the sample is small, so do not overweight it. Synapsis reads as dated
+    enterprise software. Decide late; the name matters far less than the demo.
+  </p>
+
+  <h2>Costs and risks</h2>
+  <ul>
+    <li><strong>Per-save LLM cost:</strong> a fraction of a cent with Haiku. Fine at any realistic scale.</li>
+    <li><strong>Passive page scanning:</strong> ruinous in the cloud. Another reason it is cut from v1.</li>
+    <li><strong>Chrome review:</strong> broad host permissions (<code>&lt;all_urls&gt;</code>) slow review. Prepare the privacy policy early and request the narrowest permissions the injected buttons allow.</li>
+    <li><strong>Platform fragility:</strong> injected buttons will break when sites redeploy. The shared, self-healing recipe cache is the mitigation, and it needs telemetry from day one.</li>
+  </ul>
+
+  <div class="verdict">
+    <strong>Verdict:</strong> build the MVP. Lead with the MCP angle, not the bookmark button.
+    Cut passive detection entirely from v1. Hand-tune three sites before attempting
+    auto-discovery. The product wins if the first "talk to your saves" demo feels like magic.
+  </div>
+</main>
+</body>
+</html>

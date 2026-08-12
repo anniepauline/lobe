@@ -1,0 +1,15 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+apps/extension/.output/
+apps/extension/.wxt/
+apps/extension/web-ext-artifacts/
+
+packages/db/drizzle/meta/_journal.json.bak

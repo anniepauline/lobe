@@ -1,0 +1,19 @@
+{
+  "name": "@lobe/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts",
+    "test": "bun test",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@lobe/ai": "workspace:*",
+    "@lobe/db": "workspace:*",
+    "@lobe/shared": "workspace:*",
+    "hono": "^4.13.1",
+    "zod": "^4.4.3"
+  }
+}
