@@ -65,6 +65,10 @@ describeDatabase("Postgres repositories", () => {
     expect(job?.saveId).toBe(created.row.id);
 
     await markSaveProcessing(created.row.id);
+    const embedding = Array.from(
+      { length: 1536 },
+      (_, index) => ((index * 7919) % 10_007) / 10_007,
+    );
     await completeSaveClassification(
       created.row.id,
       {
@@ -75,7 +79,7 @@ describeDatabase("Postgres repositories", () => {
         why: "The post is useful as a blueprint for a similar build.",
         alternatives: ["learn", "reference"],
       },
-      null,
+      embedding,
     );
 
     if (job) {
@@ -93,6 +97,15 @@ describeDatabase("Postgres repositories", () => {
       limit: 10,
     });
     expect(results.rows.some((row) => row.id === created.row.id)).toBe(true);
+
+    const semanticResults = await listSaves({
+      query: "database implementation",
+      intent: null,
+      cursor: null,
+      limit: 10,
+      embedding,
+    });
+    expect(semanticResults.rows[0]?.id).toBe(created.row.id);
 
     const updated = await updateSaveIntent(created.row.id, "learn");
     expect(updated?.intent).toBe("learn");

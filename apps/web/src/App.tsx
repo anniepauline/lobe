@@ -54,16 +54,22 @@ export default function App() {
   useEffect(() => {
     if (!configured) return;
     const controller = new AbortController();
+    let retryTimer: number | undefined;
     setLoading(true);
     setError("");
 
-    void api
-      .listSaves({ query: debouncedQuery, intent }, controller.signal)
-      .then((page) => {
+    const load = async (attempt = 0) => {
+      try {
+        const page = await api.listSaves(
+          { query: debouncedQuery, intent },
+          controller.signal,
+        );
         setSaves(page.saves);
         setNextCursor(debouncedQuery ? null : page.nextCursor);
-      })
-      .catch((requestError: unknown) => {
+        if (page.search.semanticPending && attempt < 3) {
+          retryTimer = window.setTimeout(() => void load(attempt + 1), 700);
+        }
+      } catch (requestError) {
         if (!controller.signal.aborted) {
           setError(
             requestError instanceof Error
@@ -71,12 +77,17 @@ export default function App() {
               : "Could not load your saves.",
           );
         }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setLoading(false);
-      });
+      } finally {
+        if (attempt === 0 && !controller.signal.aborted) setLoading(false);
+      }
+    };
 
-    return () => controller.abort();
+    void load();
+
+    return () => {
+      controller.abort();
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
   }, [api, configured, debouncedQuery, intent]);
 
   useEffect(() => {

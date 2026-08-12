@@ -1,4 +1,9 @@
-import { createEmbedding, hasOpenAiKey, CLASSIFICATION_MODEL } from "@lobe/ai";
+import {
+  getCachedSearchEmbedding,
+  hasOpenAiKey,
+  warmSearchEmbedding,
+  CLASSIFICATION_MODEL,
+} from "@lobe/ai";
 import {
   createSave,
   deleteSaveByUrl,
@@ -125,6 +130,7 @@ app.post("/v1/saves", async (context) => {
 });
 
 app.get("/v1/saves", async (context) => {
+  const startedAt = performance.now();
   const query = saveListQuerySchema.safeParse({
     query: context.req.query("query") ?? "",
     intent: context.req.query("intent") ?? null,
@@ -144,21 +150,32 @@ app.get("/v1/saves", async (context) => {
     );
   }
 
-  let embedding: number[] | undefined;
-  if (query.data.query) {
-    try {
-      embedding = (await createEmbedding(query.data.query)) ?? undefined;
-    } catch (error) {
-      console.warn("Semantic query failed, using text search", error);
-    }
+  const embedding = query.data.query
+    ? (getCachedSearchEmbedding(query.data.query) ?? undefined)
+    : undefined;
+  const semanticPending = Boolean(
+    query.data.query && !embedding && hasOpenAiKey(),
+  );
+
+  if (semanticPending) {
+    void warmSearchEmbedding(query.data.query).catch((error: unknown) => {
+      console.warn("Could not warm semantic search", error);
+    });
   }
 
   const result = await listSaves(
     embedding ? { ...query.data, embedding } : query.data,
   );
+  const durationMs = Math.round((performance.now() - startedAt) * 10) / 10;
+  context.header("Server-Timing", `search;dur=${durationMs}`);
   return context.json({
     saves: result.rows.map(serializeSave),
     nextCursor: result.nextCursor,
+    search: {
+      mode: query.data.query ? (embedding ? "semantic" : "lexical") : "browse",
+      semanticPending,
+      durationMs,
+    },
   });
 });
 

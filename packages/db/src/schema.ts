@@ -18,6 +18,7 @@ import {
   uuid,
   vector,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const platformEnum = pgEnum("platform", ["x"]);
 export const intentEnum = pgEnum("intent", [
@@ -161,9 +162,12 @@ export const saves = pgTable(
     uniqueIndex("saves_canonical_url_unique").on(table.canonicalUrl),
     index("saves_status_created_idx").on(table.status, table.createdAt),
     index("saves_intent_created_idx").on(table.intent, table.createdAt),
-    index("saves_embedding_hnsw_idx").using(
-      "hnsw",
-      table.embedding.op("vector_cosine_ops"),
+    index("saves_embedding_hnsw_idx")
+      .using("hnsw", table.embedding.op("vector_cosine_ops"))
+      .with({ m: 16, ef_construction: 96 }),
+    index("saves_search_trgm_idx").using(
+      "gin",
+      sql`(lower(${table.content} || ' ' || coalesce(${table.summary}, '') || ' ' || ${table.authorName} || ' ' || ${table.authorHandle})) gin_trgm_ops`,
     ),
   ],
 );

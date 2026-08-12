@@ -8,6 +8,13 @@
       "when": 1786551882943,
       "tag": "0000_regular_dust",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786556035596,
+      "tag": "0001_next_warstar",
+      "breakpoints": true
     }
   ]
 }

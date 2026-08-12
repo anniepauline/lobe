@@ -13,6 +13,11 @@ import type { Connection } from "./config";
 export interface SavePage {
   saves: Save[];
   nextCursor: string | null;
+  search: {
+    mode: "browse" | "lexical" | "semantic";
+    semanticPending: boolean;
+    durationMs: number;
+  };
 }
 
 export class LobeApi {

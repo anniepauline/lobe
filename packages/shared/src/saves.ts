@@ -121,6 +121,11 @@ export const createSaveResponseSchema = z.object({
 export const saveListResponseSchema = z.object({
   saves: z.array(saveSchema),
   nextCursor: z.string().nullable(),
+  search: z.object({
+    mode: z.enum(["browse", "lexical", "semantic"]),
+    semanticPending: z.boolean(),
+    durationMs: z.number().nonnegative(),
+  }),
 });
 
 export const updateIntentRequestSchema = z.object({

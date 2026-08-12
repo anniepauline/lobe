@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "benchmark:vector": "bun run --filter '@lobe/db' benchmark:vector",
     "build": "bun run --filter '@lobe/*' build",
     "check": "bun run format:check && bun run typecheck && bun run test && bun run build",
     "db:down": "docker compose down",

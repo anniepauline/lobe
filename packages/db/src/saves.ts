@@ -6,14 +6,13 @@ import {
 } from "@lobe/shared";
 import {
   and,
+  asc,
   cosineDistance,
   desc,
   eq,
   getTableColumns,
-  ilike,
   isNotNull,
   lt,
-  or,
   type SQL,
   sql,
 } from "drizzle-orm";
@@ -134,19 +133,23 @@ export async function listSaves(
       throw new Error("Search embedding must contain 1536 values");
     }
 
-    const similarity = sql<number>`1 - (${cosineDistance(
-      saves.embedding,
-      options.embedding,
-    )})`;
+    const distance = cosineDistance(saves.embedding, options.embedding);
+    const similarity = sql<number>`1 - (${distance})`;
 
     conditions.push(isNotNull(saves.embedding));
 
-    const rows = await db
-      .select({ ...getTableColumns(saves), similarity })
-      .from(saves)
-      .where(and(...conditions))
-      .orderBy(desc(similarity), desc(saves.createdAt))
-      .limit(options.limit + 1);
+    const rows = await db.transaction(async (transaction) => {
+      await transaction.execute(sql`set local hnsw.ef_search = 80`);
+      await transaction.execute(
+        sql`set local hnsw.iterative_scan = strict_order`,
+      );
+      return transaction
+        .select({ ...getTableColumns(saves), similarity })
+        .from(saves)
+        .where(and(...conditions))
+        .orderBy(asc(distance), desc(saves.createdAt))
+        .limit(options.limit + 1);
+    });
 
     const hasMore = rows.length > options.limit;
     const page = rows.slice(0, options.limit);
@@ -160,17 +163,10 @@ export async function listSaves(
   }
 
   if (options.query) {
-    const pattern = `%${options.query}%`;
-    const textMatch = or(
-      ilike(saves.content, pattern),
-      ilike(saves.summary, pattern),
-      ilike(saves.authorName, pattern),
-      ilike(saves.authorHandle, pattern),
+    const searchDocument = sql`lower(${saves.content} || ' ' || coalesce(${saves.summary}, '') || ' ' || ${saves.authorName} || ' ' || ${saves.authorHandle})`;
+    conditions.push(
+      sql`${searchDocument} like ${`%${options.query.toLocaleLowerCase()}%`}`,
     );
-
-    if (textMatch) {
-      conditions.push(textMatch);
-    }
   }
 
   const rows = await db

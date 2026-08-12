@@ -41,7 +41,15 @@ describe("Lobe web API", () => {
     let request: Request | null = null;
     globalThis.fetch = (async (input, init) => {
       request = new Request(input, init);
-      return Response.json({ saves: [save], nextCursor: null });
+      return Response.json({
+        saves: [save],
+        nextCursor: null,
+        search: {
+          mode: "semantic",
+          semanticPending: false,
+          durationMs: 12.4,
+        },
+      });
     }) as typeof fetch;
 
     const api = new LobeApi({

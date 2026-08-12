@@ -1,9 +1,17 @@
 import { describe, expect, test } from "bun:test";
 import { capturedPostSchema, recipeFailureRequestSchema } from "@lobe/shared";
 
-import { compactRecipePrompt, fallbackClassification } from "./index";
+import {
+  compactRecipePrompt,
+  EMBEDDING_MODEL,
+  fallbackClassification,
+} from "./index";
 
 describe("AI fallbacks and prompt budgets", () => {
+  test("locks vector dimensions to text-embedding-3-small", () => {
+    expect(EMBEDDING_MODEL).toBe("text-embedding-3-small");
+  });
+
   test("classifies build-oriented posts without a network call", () => {
     const capture = capturedPostSchema.parse({
       platform: "x",
