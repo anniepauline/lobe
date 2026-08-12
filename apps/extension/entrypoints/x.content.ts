@@ -154,6 +154,7 @@ async function savePost(
   capture: CapturedPost,
   post: HTMLElement,
   settings: ExtensionSettings,
+  isCancelled: () => boolean,
 ): Promise<void> {
   if (!settings.apiToken.trim()) {
     toast.show({
@@ -180,7 +181,21 @@ async function savePost(
     type: "save:create",
     capture: { ...capture, screenshot },
   });
-  showOrganized(toast, await waitUntilOrganized(saved), settings);
+  void waitUntilOrganized(saved)
+    .then((organized) => {
+      if (!isCancelled()) {
+        showOrganized(toast, organized, settings);
+      }
+    })
+    .catch((error: unknown) => {
+      if (!isCancelled()) {
+        toast.show({
+          title: "Saved, but the result is not ready yet",
+          detail: error instanceof Error ? error.message : undefined,
+          tone: "error",
+        });
+      }
+    });
 }
 
 async function removePost(
@@ -189,6 +204,10 @@ async function removePost(
   settings: ExtensionSettings,
   pendingSave: Promise<void> | undefined,
 ): Promise<void> {
+  if (!settings.apiToken.trim()) {
+    return;
+  }
+
   await pendingSave?.catch(() => undefined);
   await sendExtensionMessage<{ removed: true }>({
     type: "save:remove",
@@ -214,8 +233,8 @@ export default defineContentScript({
   main() {
     const toast = new LobeToast();
     let activeRecipe = bundledXRecipe;
-    let settings = DEFAULT_EXTENSION_SETTINGS;
     const pendingSaves = new Map<string, Promise<void>>();
+    const cancelledSaves = new Set<string>();
     const reportedLayouts = new Set<string>();
 
     void sendExtensionMessage<SelectorRecipe>({ type: "recipe:get" }).then(
@@ -223,12 +242,6 @@ export default defineContentScript({
         activeRecipe = recipe;
       },
     );
-    void sendExtensionMessage<ExtensionSettings>({ type: "settings:get" }).then(
-      (loaded) => {
-        settings = loaded;
-      },
-    );
-
     document.addEventListener(
       "click",
       (event) => {
@@ -260,31 +273,48 @@ export default defineContentScript({
             return;
           }
 
-          const task = savePost(toast, capture, interaction.post, settings)
+          cancelledSaves.delete(capture.canonicalUrl);
+          const task = sendExtensionMessage<ExtensionSettings>({
+            type: "settings:get",
+          })
+            .catch(() => DEFAULT_EXTENSION_SETTINGS)
+            .then((settings) =>
+              savePost(toast, capture, interaction.post, settings, () =>
+                cancelledSaves.has(capture.canonicalUrl),
+              ),
+            )
             .catch((error: unknown) => {
-              toast.show({
-                title: "Could not sync this bookmark",
-                detail: error instanceof Error ? error.message : undefined,
-                tone: "error",
-              });
+              if (!cancelledSaves.has(capture.canonicalUrl)) {
+                toast.show({
+                  title: "Could not sync this bookmark",
+                  detail: error instanceof Error ? error.message : undefined,
+                  tone: "error",
+                });
+              }
             })
             .finally(() => pendingSaves.delete(capture.canonicalUrl));
           pendingSaves.set(capture.canonicalUrl, task);
           return;
         }
 
-        void removePost(
-          toast,
-          capture.canonicalUrl,
-          settings,
-          pendingSaves.get(capture.canonicalUrl),
-        ).catch((error: unknown) => {
-          toast.show({
-            title: "Could not remove this bookmark",
-            detail: error instanceof Error ? error.message : undefined,
-            tone: "error",
+        cancelledSaves.add(capture.canonicalUrl);
+        void sendExtensionMessage<ExtensionSettings>({ type: "settings:get" })
+          .catch(() => DEFAULT_EXTENSION_SETTINGS)
+          .then((settings) =>
+            removePost(
+              toast,
+              capture.canonicalUrl,
+              settings,
+              pendingSaves.get(capture.canonicalUrl),
+            ),
+          )
+          .catch((error: unknown) => {
+            toast.show({
+              title: "Could not remove this bookmark",
+              detail: error instanceof Error ? error.message : undefined,
+              tone: "error",
+            });
           });
-        });
       },
       true,
     );

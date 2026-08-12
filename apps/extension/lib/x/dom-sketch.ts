@@ -6,10 +6,36 @@ import type {
 
 const ACTION_LABEL =
   /\b(bookmark(?:ed)?|like(?:d)?|reply|repost(?:ed)?|share|views?|more)\b/i;
+const SEMANTIC_TEST_ID =
+  /(?:tweet|bookmark|reply|repost|like|share|user|avatar|photo|video|cell|caret|menu|appbar|primary|navigation|search|timeline)/i;
+const SEMANTIC_ROLES = new Set([
+  "article",
+  "button",
+  "group",
+  "link",
+  "main",
+  "menu",
+  "menuitem",
+  "navigation",
+  "search",
+]);
 
 function semanticAriaLabel(value: string | null): string | null {
   const match = value?.match(ACTION_LABEL);
   return match?.[1]?.toLocaleLowerCase() ?? null;
+}
+
+function semanticTestId(value: string | null): string | null {
+  if (!value || !SEMANTIC_TEST_ID.test(value)) {
+    return null;
+  }
+
+  return value.replace(/\d{3,}/g, ":id").slice(0, 120);
+}
+
+function semanticRole(value: string | null): string | null {
+  const role = value?.toLocaleLowerCase() ?? null;
+  return role && SEMANTIC_ROLES.has(role) ? role : null;
 }
 
 function hrefShape(element: Element): string | null {
@@ -43,12 +69,12 @@ function hrefShape(element: Element): string | null {
 
 function nodeSegment(element: Element): string {
   const tag = element.tagName.toLocaleLowerCase();
-  const testId = element.getAttribute("data-testid");
+  const testId = semanticTestId(element.getAttribute("data-testid"));
   if (testId) {
     return `${tag}[data-testid="${testId.slice(0, 60)}"]`;
   }
 
-  const role = element.getAttribute("role");
+  const role = semanticRole(element.getAttribute("role"));
   if (role) {
     return `${tag}[role="${role.slice(0, 40)}"]`;
   }
@@ -98,8 +124,8 @@ export function buildDomSketch(document: Document): CompactDomNode[] {
     return {
       path: semanticPath(element),
       tag: element.tagName.toLocaleLowerCase(),
-      role: element.getAttribute("role")?.slice(0, 80) ?? null,
-      testId: element.getAttribute("data-testid")?.slice(0, 120) ?? null,
+      role: semanticRole(element.getAttribute("role")),
+      testId: semanticTestId(element.getAttribute("data-testid")),
       ariaLabel: semanticAriaLabel(element.getAttribute("aria-label")),
       hrefShape: hrefShape(element),
       svgViewBox: svg?.getAttribute("viewBox")?.slice(0, 80) ?? null,

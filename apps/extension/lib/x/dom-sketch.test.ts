@@ -10,7 +10,7 @@ describe("privacy-safe DOM sketches", () => {
     window.document.body.innerHTML = `
       <main>
         <article role="article">
-          <p>VaibhavSecret roadmap details</p>
+          <p role="VaibhavSecret" data-testid="VaibhavSecret">VaibhavSecret roadmap details</p>
           <a href="/privateHandle/status/2087546799200555424">Private link</a>
           <button aria-label="Bookmark VaibhavSecret"><svg viewBox="0 0 24 24"><path d="M4 4.5C4 3.12 5.119 2 6.5 2h11" /></svg></button>
         </article>
