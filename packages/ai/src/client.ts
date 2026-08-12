@@ -3,8 +3,7 @@ import {
   type OpenAILanguageModelResponsesOptions,
 } from "@ai-sdk/openai";
 
-export const CLASSIFICATION_MODEL =
-  process.env.OPENAI_CLASSIFICATION_MODEL ?? "gpt-5.6-luna";
+export const CLASSIFICATION_MODEL = "gpt-5.6-luna";
 export const EMBEDDING_MODEL = "text-embedding-3-small";
 
 const allowedReasoningEfforts = new Set([

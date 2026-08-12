@@ -1,7 +1,14 @@
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "wxt";
 
 export default defineConfig({
   modules: ["@wxt-dev/module-react"],
+  vite: () => ({
+    plugins: [tailwindcss()],
+    resolve: {
+      dedupe: ["react", "react-dom"],
+    },
+  }),
   manifest: {
     name: "Lobe",
     description: "Turn your X bookmarks into organized, searchable context.",

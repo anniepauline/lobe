@@ -27,7 +27,7 @@ export const intentDefinitions = [
     label: "Try it",
     questionLabel: "Try this",
     description: "A tool, workflow, place, recipe, or idea you want to try.",
-    color: "#e96f3d",
+    color: "#f97316",
   },
   {
     id: "build",
@@ -35,7 +35,7 @@ export const intentDefinitions = [
     questionLabel: "Build from this",
     description:
       "Something you want to recreate, remix, or use as product inspiration.",
-    color: "#7d6ef1",
+    color: "#8b5cf6",
   },
   {
     id: "learn",
@@ -43,28 +43,28 @@ export const intentDefinitions = [
     questionLabel: "Learn this",
     description:
       "A concept, technique, or explanation worth understanding deeply.",
-    color: "#3b8bd4",
+    color: "#0ea5e9",
   },
   {
     id: "reference",
     label: "Reference",
     questionLabel: "Keep as reference",
     description: "Useful information you expect to look up again.",
-    color: "#2f9e7a",
+    color: "#10b981",
   },
   {
     id: "buy",
     label: "Buy",
     questionLabel: "Consider buying",
     description: "A product or service you may want to purchase.",
-    color: "#bd7c24",
+    color: "#f59e0b",
   },
   {
     id: "share",
     label: "Share",
     questionLabel: "Share later",
     description: "Something you want to send, quote, or discuss with someone.",
-    color: "#ba5b87",
+    color: "#ec4899",
   },
 ] as const satisfies ReadonlyArray<IntentDefinition>;
 

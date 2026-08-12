@@ -1,14 +1,10 @@
 :root {
-  font-family:
-    Inter,
-    ui-sans-serif,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  color: #28231f;
-  background: #f5f1e9;
+  color-scheme: dark;
+  font-family: "Geist Variable", Geist, ui-sans-serif, sans-serif;
+  color: #fafafa;
+  background: #000;
   font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -17,6 +13,7 @@
 
 body {
   margin: 0;
+  background: #000;
 }
 
 button,
@@ -25,6 +22,7 @@ input {
 }
 
 button {
+  color: inherit;
   cursor: pointer;
 }
 
@@ -32,9 +30,10 @@ button {
   display: inline-grid;
   flex: none;
   place-items: center;
-  border-radius: 10px;
-  color: #f8f3e9;
-  background: #2f2925;
+  border: 1px solid #27272a;
+  border-radius: 9px;
+  color: #09090b;
+  background: #fafafa;
 }
 
 .logo svg {
@@ -46,15 +45,14 @@ button {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 760;
+  font-weight: 720;
   letter-spacing: -0.03em;
 }
 
 .primary,
 .secondary,
 .icon-button {
-  border: 0;
-  border-radius: 10px;
+  border-radius: 9px;
 }
 
 .primary {
@@ -63,26 +61,28 @@ button {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  border: 1px solid #fafafa;
   padding: 0 14px;
-  color: #fbf7ef;
-  background: #302a26;
-  font-weight: 700;
+  color: #09090b;
+  background: #fafafa;
+  font-weight: 650;
 }
 
 .primary:hover {
-  background: #171412;
+  background: #e4e4e7;
 }
 
 .secondary,
 .icon-button {
-  color: #403833;
-  background: transparent;
-  border: 1px solid #d8d0c5;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
+  background: #09090b;
 }
 
 .secondary:hover,
 .icon-button:hover {
-  background: #ebe4d9;
+  border-color: #3f3f46;
+  background: #18181b;
 }
 
 .icon-button {
@@ -93,5 +93,5 @@ button {
 }
 
 .muted {
-  color: #746c64;
+  color: #a1a1aa;
 }

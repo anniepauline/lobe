@@ -3,6 +3,7 @@ import { capturedPostSchema, recipeFailureRequestSchema } from "@lobe/shared";
 
 import {
   applyDirectFeedback,
+  CLASSIFICATION_MODEL,
   compactRecipePrompt,
   EMBEDDING_MODEL,
   fallbackClassification,
@@ -11,6 +12,7 @@ import {
 describe("AI fallbacks and prompt budgets", () => {
   test("locks vector dimensions to text-embedding-3-small", () => {
     expect(EMBEDDING_MODEL).toBe("text-embedding-3-small");
+    expect(CLASSIFICATION_MODEL).toBe("gpt-5.6-luna");
   });
 
   test("classifies build-oriented posts without a network call", () => {

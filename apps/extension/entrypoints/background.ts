@@ -222,6 +222,15 @@ async function handleMessage(
         );
         return { ok: true, data: saveSchema.parse(payload.save) };
       }
+      case "save:feedback:pending": {
+        const payload = await requestApi<{ save: unknown }>(
+          "/v1/saves/reviews/pending",
+        );
+        return {
+          ok: true,
+          data: payload.save === null ? null : saveSchema.parse(payload.save),
+        };
+      }
       case "save:intent": {
         const payload = await requestApi<{ save: unknown }>(
           `/v1/saves/${message.id}/intent`,

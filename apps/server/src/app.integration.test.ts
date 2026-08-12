@@ -100,6 +100,22 @@ describeDatabase("server save flow", () => {
     };
     expect(results.saves.some((save) => save.id === saveId)).toBe(true);
 
+    const reviewResponse = await app.request("/v1/saves?needsReview=true", {
+      headers: authorization,
+    });
+    const reviewResults = (await reviewResponse.json()) as {
+      saves: Array<{ id: string }>;
+    };
+    expect(reviewResults.saves.some((save) => save.id === saveId)).toBe(true);
+
+    const pendingResponse = await app.request("/v1/saves/reviews/pending", {
+      headers: authorization,
+    });
+    const pending = (await pendingResponse.json()) as {
+      save: { id: string } | null;
+    };
+    expect(pending.save?.id).toBe(saveId);
+
     const dismissResponse = await app.request(
       `/v1/saves/${saveId}/feedback/dismiss`,
       {
@@ -112,6 +128,15 @@ describeDatabase("server save flow", () => {
     };
     expect(dismissed.save.needsReview).toBe(true);
     expect(dismissed.save.reviewDismissedAt).not.toBeNull();
+
+    const dismissedPendingResponse = await app.request(
+      "/v1/saves/reviews/pending",
+      { headers: authorization },
+    );
+    const dismissedPending = (await dismissedPendingResponse.json()) as {
+      save: { id: string } | null;
+    };
+    expect(dismissedPending.save).toBeNull();
 
     const feedbackResponse = await app.request(`/v1/saves/${saveId}/feedback`, {
       method: "POST",

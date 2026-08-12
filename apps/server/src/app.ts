@@ -9,6 +9,7 @@ import {
   deleteSaveByUrl,
   dismissSaveReview,
   getActiveRecipe,
+  getPendingReview,
   getSave,
   getScreenshot,
   getTasteProfileRows,
@@ -137,6 +138,7 @@ app.get("/v1/saves", async (context) => {
   const query = saveListQuerySchema.safeParse({
     query: context.req.query("query") ?? "",
     intent: context.req.query("intent") ?? null,
+    needsReview: context.req.query("needsReview") ?? null,
     cursor: context.req.query("cursor") ?? null,
     limit: context.req.query("limit") ?? 30,
   });
@@ -208,6 +210,11 @@ app.delete("/v1/saves/by-url", async (context) => {
         },
         404,
       );
+});
+
+app.get("/v1/saves/reviews/pending", async (context) => {
+  const row = await getPendingReview();
+  return context.json({ save: row ? serializeSave(row) : null });
 });
 
 app.get("/v1/saves/:id", async (context) => {

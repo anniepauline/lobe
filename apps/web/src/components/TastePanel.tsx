@@ -1,22 +1,56 @@
 import { INTENT_IDS, intentById, type TasteProfile } from "@lobe/shared";
-import { Sparkles } from "lucide-react";
+import {
+  AlertCircleIcon,
+  ArrowRight01Icon,
+  SparklesIcon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Button } from "@lobe/ui/components/button";
+import { Card } from "@lobe/ui/components/card";
 
-export function TastePanel({ profile }: { profile: TasteProfile | null }) {
+export function TastePanel({
+  profile,
+  onReview,
+}: {
+  profile: TasteProfile | null;
+  onReview: () => void;
+}) {
   const maxIntent = profile
     ? Math.max(1, ...Object.values(profile.intentCounts))
     : 1;
 
   return (
-    <aside className="taste-panel">
+    <Card className="taste-panel" role="complementary">
       <div className="panel-heading">
         <span className="panel-icon">
-          <Sparkles size={15} />
+          <HugeiconsIcon icon={SparklesIcon} size={15} />
         </span>
         <div>
           <h2>Your taste</h2>
           <span>{profile?.totalSaves ?? 0} signals</span>
         </div>
       </div>
+
+      {profile && profile.reviewCount > 0 && (
+        <Button
+          variant="ghost"
+          className="review-queue"
+          type="button"
+          onClick={onReview}
+        >
+          <span>
+            <HugeiconsIcon icon={AlertCircleIcon} size={15} />
+          </span>
+          <span>
+            <strong>Needs review</strong>
+            <small>
+              {profile.reviewCount} uncertain save
+              {profile.reviewCount === 1 ? "" : "s"}
+            </small>
+          </span>
+          <HugeiconsIcon icon={ArrowRight01Icon} size={15} />
+        </Button>
+      )}
 
       {profile && profile.totalSaves > 0 ? (
         <>
@@ -79,6 +113,6 @@ export function TastePanel({ profile }: { profile: TasteProfile | null }) {
           Your patterns appear here as Lobe learns from deliberate saves.
         </p>
       )}
-    </aside>
+    </Card>
   );
 }

@@ -1,7 +1,22 @@
+import type { IntentId } from "@lobe/shared";
+import { createElement } from "react";
+import { flushSync } from "react-dom";
+import { createRoot, type Root } from "react-dom/client";
+
+import { FeedbackToast, ToastNotice } from "./toast-ui";
+
 export interface ToastButton {
   label: string;
   color?: string;
   onClick: () => void;
+}
+
+export interface FeedbackPrompt {
+  summary: string;
+  intents: IntentId[];
+  selectedIntent: IntentId;
+  onSubmit: (intent: IntentId, reason: string) => Promise<void>;
+  onDismiss: () => Promise<void>;
 }
 
 export interface ToastMessage {
@@ -15,7 +30,9 @@ export interface ToastMessage {
 export class LobeToast {
   readonly host: HTMLDivElement;
   readonly root: ShadowRoot;
+  readonly #reactRoot: Root;
   #dismissTimer: number | null = null;
+  #mode: "idle" | "toast" | "feedback" = "idle";
 
   constructor() {
     this.host = document.createElement("div");
@@ -24,22 +41,53 @@ export class LobeToast {
       "position:fixed;inset:auto 20px 24px auto;z-index:2147483647;pointer-events:none";
     this.root = this.host.attachShadow({ mode: "closed" });
     this.root.innerHTML = `<style>
-      :host { color-scheme: light dark; }
-      .toast { width:min(360px,calc(100vw - 40px)); box-sizing:border-box; padding:14px; border:1px solid rgba(127,127,127,.26); border-radius:16px; background:rgba(24,24,27,.96); color:#fafafa; box-shadow:0 16px 48px rgba(0,0,0,.3); font:500 14px/1.35 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; pointer-events:auto; animation:enter .16s ease-out; }
+      :host { color-scheme: dark; }
+      * { box-sizing:border-box; }
+      .toast { width:min(380px,calc(100vw - 40px)); box-sizing:border-box; padding:14px; border:1px solid #27272a; border-radius:16px; background:rgba(0,0,0,.97); color:#fafafa; box-shadow:0 18px 60px rgba(0,0,0,.48); font:500 14px/1.4 "Geist Variable",Geist,ui-sans-serif,sans-serif; pointer-events:auto; animation:enter .16s ease-out; }
       .head { display:flex; align-items:center; gap:10px; }
-      .mark { display:grid; place-items:center; width:26px; height:26px; border-radius:9px; background:#f4ede3; color:#27221d; flex:none; }
+      .mark { display:grid; place-items:center; width:26px; height:26px; border-radius:8px; background:#fafafa; color:#09090b; flex:none; }
       .mark svg { width:15px; height:15px; }
-      .title { font-weight:700; letter-spacing:-.01em; }
-      .detail { color:#b8b8bd; margin:6px 0 0 36px; font-size:13px; }
+      .title { font-weight:680; letter-spacing:-.015em; }
+      .detail { color:#a1a1aa; margin:6px 0 0 36px; font-size:13px; }
       .buttons { display:flex; flex-wrap:wrap; gap:7px; margin:12px 0 0 36px; }
-      button { appearance:none; border:1px solid rgba(255,255,255,.15); border-radius:9px; padding:7px 10px; color:#f6f6f6; background:#333338; font:650 12px/1 system-ui,-apple-system,sans-serif; cursor:pointer; }
-      button:hover { background:#414148; }
-      .error .mark { background:#f4d9d4; color:#7c2d22; }
-      .success .mark { background:#d9eadf; color:#225f39; }
+      button,textarea { font:inherit; }
+      button { appearance:none; border:1px solid #3f3f46; border-radius:9px; padding:7px 10px; color:#f4f4f5; background:#18181b; font-size:12px; font-weight:650; cursor:pointer; }
+      button:hover { border-color:#52525b; background:#27272a; }
+      button:disabled { cursor:wait; opacity:.55; }
+      .error .mark { background:#fb7185; color:#4c0519; }
+      .success .mark { background:#34d399; color:#022c22; }
+      .prompt-label { margin:14px 0 5px; color:#71717a; font-size:10px; font-weight:750; letter-spacing:.09em; text-transform:uppercase; }
+      .intent-list { display:flex; flex-wrap:wrap; gap:7px; }
+      .intent-list button { padding:7px 9px; }
+      .intent-list button[aria-pressed="true"] { border-color:var(--intent); color:#fff; background:color-mix(in srgb,var(--intent) 22%,#09090b); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--intent) 52%,transparent); }
+      textarea { display:block; width:100%; min-height:76px; resize:vertical; margin-top:10px; border:1px solid #27272a; border-radius:10px; outline:0; padding:10px 11px; color:#fafafa; background:#09090b; font-size:13px; line-height:1.4; }
+      textarea::placeholder { color:#52525b; }
+      textarea:focus { border-color:#52525b; box-shadow:0 0 0 3px rgba(63,63,70,.35); }
+      .prompt-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:10px; }
+      .prompt-actions .quiet { border-color:transparent; color:#a1a1aa; background:transparent; }
+      .prompt-actions .submit { border-color:#fafafa; color:#09090b; background:#fafafa; }
+      .prompt-actions .submit:hover { background:#e4e4e7; }
+      .prompt-error { min-height:17px; margin:7px 0 -4px; color:#fb7185; font-size:11px; }
       @keyframes enter { from { opacity:0; transform:translateY(8px) scale(.98); } }
       @media (prefers-reduced-motion:reduce) { .toast { animation:none; } }
+      @media (max-width:520px) { .toast { width:calc(100vw - 24px); } }
     </style><div id="mount"></div>`;
+    const mount = this.root.querySelector<HTMLDivElement>("#mount");
+    if (!mount) throw new Error("Could not mount the Lobe on-page UI");
+    this.#reactRoot = createRoot(mount);
     document.documentElement.append(this.host);
+  }
+
+  showFeedback(prompt: FeedbackPrompt): void {
+    if (this.#dismissTimer) {
+      window.clearTimeout(this.#dismissTimer);
+      this.#dismissTimer = null;
+    }
+
+    this.#mode = "feedback";
+    flushSync(() =>
+      this.#reactRoot.render(createElement(FeedbackToast, { prompt })),
+    );
   }
 
   show(message: ToastMessage): void {
@@ -48,45 +96,10 @@ export class LobeToast {
       this.#dismissTimer = null;
     }
 
-    const mount = this.root.querySelector<HTMLDivElement>("#mount");
-    if (!mount) return;
-    mount.replaceChildren();
-
-    const toast = document.createElement("div");
-    toast.className = `toast ${message.tone ?? "neutral"}`;
-    const head = document.createElement("div");
-    head.className = "head";
-    const mark = document.createElement("span");
-    mark.className = "mark";
-    mark.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 3.5A2.5 2.5 0 0 0 3.5 6v15l8.5-5.4 8.5 5.4V6A2.5 2.5 0 0 0 18 3.5H6Zm0 2h12a.5.5 0 0 1 .5.5v11.35L12 13.22l-6.5 4.13V6a.5.5 0 0 1 .5-.5Z"/></svg>`;
-    const title = document.createElement("div");
-    title.className = "title";
-    title.textContent = message.title;
-    head.append(mark, title);
-    toast.append(head);
-
-    if (message.detail) {
-      const detail = document.createElement("div");
-      detail.className = "detail";
-      detail.textContent = message.detail;
-      toast.append(detail);
-    }
-
-    if (message.buttons?.length) {
-      const buttons = document.createElement("div");
-      buttons.className = "buttons";
-      for (const action of message.buttons) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = action.label;
-        if (action.color) button.style.borderColor = action.color;
-        button.addEventListener("click", action.onClick, { once: true });
-        buttons.append(button);
-      }
-      toast.append(buttons);
-    }
-
-    mount.append(toast);
+    this.#mode = "toast";
+    flushSync(() =>
+      this.#reactRoot.render(createElement(ToastNotice, { message })),
+    );
     const duration =
       message.duration ?? (message.buttons?.length ? 15_000 : 3_500);
     if (duration > 0) {
@@ -95,7 +108,16 @@ export class LobeToast {
   }
 
   dismiss(): void {
-    this.root.querySelector("#mount")?.replaceChildren();
+    flushSync(() => this.#reactRoot.render(null));
     this.#dismissTimer = null;
+    this.#mode = "idle";
+  }
+
+  isFeedbackVisible(): boolean {
+    return this.#mode === "feedback";
+  }
+
+  isVisible(): boolean {
+    return this.#mode !== "idle";
   }
 }

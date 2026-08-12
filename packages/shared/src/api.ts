@@ -19,6 +19,11 @@ export type ApiError = z.infer<typeof apiErrorSchema>;
 export const saveListQuerySchema = z.object({
   query: z.string().trim().max(300).default(""),
   intent: intentIdSchema.nullable().default(null),
+  needsReview: z
+    .enum(["true", "false"])
+    .transform((value) => value === "true")
+    .nullable()
+    .default(null),
   cursor: z.string().nullable().default(null),
   limit: z.coerce.number().int().min(1).max(100).default(30),
 });

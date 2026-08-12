@@ -1,15 +1,35 @@
 import {
+  ArrowUpRight01Icon,
+  Cancel01Icon,
+  Search01Icon,
+  Settings02Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
   intentById,
   type IntentId,
   type Save,
   type TasteProfile,
 } from "@lobe/shared";
-import { ExternalLink, Search, Settings2, X } from "lucide-react";
+import {
+  Alert,
+  AlertAction,
+  AlertDescription,
+} from "@lobe/ui/components/alert";
+import { Button } from "@lobe/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@lobe/ui/components/dialog";
+import { Input } from "@lobe/ui/components/input";
+import { Skeleton } from "@lobe/ui/components/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LobeApi } from "./api";
 import { ConnectionForm } from "./components/ConnectionForm";
-import { IntentFilter } from "./components/IntentFilter";
+import { IntentFilter, type LibraryFilter } from "./components/IntentFilter";
 import { Logo } from "./components/Logo";
 import { SaveCard } from "./components/SaveCard";
 import { SaveDetail } from "./components/SaveDetail";
@@ -26,7 +46,7 @@ export default function App() {
   const [profile, setProfile] = useState<TasteProfile | null>(null);
   const [selected, setSelected] = useState<Save | null>(null);
   const [query, setQuery] = useState("");
-  const [intent, setIntent] = useState<IntentId | null>(null);
+  const [filter, setFilter] = useState<LibraryFilter>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -35,6 +55,8 @@ export default function App() {
   const debouncedQuery = useDebouncedValue(query.trim());
   const api = useMemo(() => new LobeApi(connection), [connection]);
   const configured = connection.apiToken.length > 0;
+  const intent = filter === "review" ? null : filter;
+  const needsReview = filter === "review" ? true : undefined;
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -61,7 +83,11 @@ export default function App() {
     const load = async (attempt = 0) => {
       try {
         const page = await api.listSaves(
-          { query: debouncedQuery, intent },
+          {
+            query: debouncedQuery,
+            intent,
+            ...(needsReview === undefined ? {} : { needsReview }),
+          },
           controller.signal,
         );
         setSaves(page.saves);
@@ -88,7 +114,7 @@ export default function App() {
       controller.abort();
       if (retryTimer) window.clearTimeout(retryTimer);
     };
-  }, [api, configured, debouncedQuery, intent]);
+  }, [api, configured, debouncedQuery, intent, needsReview]);
 
   useEffect(() => {
     if (!configured) return;
@@ -133,6 +159,7 @@ export default function App() {
       const page = await api.listSaves({
         query: "",
         intent,
+        ...(needsReview === undefined ? {} : { needsReview }),
         cursor: nextCursor,
       });
       setSaves((current) => [
@@ -153,16 +180,43 @@ export default function App() {
     }
   };
 
-  const updateIntent = async (nextIntent: IntentId) => {
+  const submitFeedback = async (nextIntent: IntentId, reason: string) => {
     if (!selected) return;
-    const updated = await api.updateIntent(selected.id, nextIntent);
+    const previousIntent = selected.intent;
+    const updated = await api.submitFeedback(selected.id, nextIntent, reason);
     setSelected(updated);
     setSaves((current) =>
       current
         .map((save) => (save.id === updated.id ? updated : save))
-        .filter((save) => !intent || save.intent === intent),
+        .filter((save) => matchesFilter(save, filter)),
     );
-    await refreshTaste();
+    setProfile((current) => {
+      if (!current) return current;
+
+      const intentCounts =
+        previousIntent !== nextIntent
+          ? {
+              ...current.intentCounts,
+              ...(previousIntent
+                ? {
+                    [previousIntent]: Math.max(
+                      0,
+                      current.intentCounts[previousIntent] - 1,
+                    ),
+                  }
+                : {}),
+              [nextIntent]: current.intentCounts[nextIntent] + 1,
+            }
+          : current.intentCounts;
+
+      return {
+        ...current,
+        reviewCount: selected.needsReview
+          ? Math.max(0, current.reviewCount - 1)
+          : current.reviewCount,
+        intentCounts,
+      };
+    });
   };
 
   const deleteSelected = async () => {
@@ -193,8 +247,8 @@ export default function App() {
             <span>Lobe</span>
           </a>
           <label className="global-search">
-            <Search size={18} />
-            <input
+            <HugeiconsIcon icon={Search01Icon} size={18} strokeWidth={1.8} />
+            <Input
               ref={searchRef}
               type="search"
               value={query}
@@ -203,25 +257,29 @@ export default function App() {
               aria-label="Search saves"
             />
             {query ? (
-              <button
+              <Button
+                variant="ghost"
+                size="icon-xs"
                 type="button"
                 aria-label="Clear search"
                 onClick={() => setQuery("")}
               >
-                <X size={16} />
-              </button>
+                <HugeiconsIcon icon={Cancel01Icon} size={16} />
+              </Button>
             ) : (
               <kbd>/</kbd>
             )}
           </label>
-          <button
+          <Button
+            variant="outline"
+            size="icon-lg"
             className="icon-button"
             type="button"
             aria-label="Connection settings"
             onClick={() => setShowConnection(true)}
           >
-            <Settings2 size={18} />
-          </button>
+            <HugeiconsIcon icon={Settings02Icon} size={18} />
+          </Button>
         </div>
       </header>
 
@@ -229,42 +287,59 @@ export default function App() {
         <section className="library">
           <div className="library-heading">
             <div>
-              <h1>{debouncedQuery ? "Search" : "Library"}</h1>
+              <h1>
+                {debouncedQuery
+                  ? "Search"
+                  : filter === "review"
+                    ? "Needs review"
+                    : "Library"}
+              </h1>
               <p>
                 {debouncedQuery
                   ? `${saves.length} match${saves.length === 1 ? "" : "es"} for “${debouncedQuery}”`
-                  : `${profile?.totalSaves ?? saves.length} saved thoughts`}
+                  : filter === "review"
+                    ? `${profile?.reviewCount ?? saves.length} uncertain save${(profile?.reviewCount ?? saves.length) === 1 ? "" : "s"}`
+                    : `${profile?.totalSaves ?? saves.length} saved thoughts`}
               </p>
             </div>
-            <a
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
               className="button secondary open-x"
-              href="https://x.com/home"
-              target="_blank"
-              rel="noreferrer"
             >
-              Open X <ExternalLink size={15} />
-            </a>
+              <a href="https://x.com/home" target="_blank" rel="noreferrer">
+                Open X <HugeiconsIcon icon={ArrowUpRight01Icon} size={15} />
+              </a>
+            </Button>
           </div>
 
           <IntentFilter
-            active={intent}
+            active={filter}
             profile={profile}
-            onChange={setIntent}
+            onChange={setFilter}
           />
 
           {error && (
-            <div className="error-banner">
-              <span>{error}</span>
-              <button type="button" onClick={() => setShowConnection(true)}>
-                Check connection
-              </button>
-            </div>
+            <Alert variant="destructive" className="error-banner">
+              <AlertDescription>{error}</AlertDescription>
+              <AlertAction>
+                <Button
+                  variant="link"
+                  size="sm"
+                  type="button"
+                  onClick={() => setShowConnection(true)}
+                >
+                  Check connection
+                </Button>
+              </AlertAction>
+            </Alert>
           )}
 
           {loading ? (
             <div className="save-grid" aria-label="Loading saves">
               {Array.from({ length: 6 }, (_, index) => (
-                <div className="save-skeleton" key={index} />
+                <Skeleton className="save-skeleton" key={index} />
               ))}
             </div>
           ) : saves.length > 0 ? (
@@ -280,22 +355,30 @@ export default function App() {
                 ))}
               </div>
               {nextCursor && (
-                <button
+                <Button
+                  variant="outline"
+                  size="lg"
                   className="button secondary load-more"
                   type="button"
                   disabled={loadingMore}
                   onClick={() => void loadMore()}
                 >
                   {loadingMore ? "Loading…" : "Load more"}
-                </button>
+                </Button>
               )}
             </>
           ) : (
-            <EmptyState query={debouncedQuery} intent={intent} />
+            <EmptyState query={debouncedQuery} filter={filter} />
           )}
         </section>
 
-        <TastePanel profile={profile} />
+        <TastePanel
+          profile={profile}
+          onReview={() => {
+            setFilter("review");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        />
       </main>
 
       {selected && (
@@ -303,43 +386,59 @@ export default function App() {
           save={selected}
           api={api}
           onClose={() => setSelected(null)}
-          onIntent={updateIntent}
+          onFeedback={submitFeedback}
           onDelete={deleteSelected}
         />
       )}
 
-      {showConnection && (
-        <ConnectionForm
-          compact
-          initial={connection}
-          busy={connectBusy}
-          error={connectError}
-          onCancel={() => {
-            setShowConnection(false);
-            setConnectError("");
-          }}
-          onSubmit={connect}
-        />
-      )}
+      <Dialog
+        open={showConnection}
+        onOpenChange={(open) => {
+          setShowConnection(open);
+          if (!open) setConnectError("");
+        }}
+      >
+        <DialogContent className="connection-dialog" showCloseButton={false}>
+          <DialogTitle className="sr-only">Connection</DialogTitle>
+          <DialogDescription className="sr-only">
+            Update the Lobe server used by this browser.
+          </DialogDescription>
+          <ConnectionForm
+            compact
+            initial={connection}
+            busy={connectBusy}
+            error={connectError}
+            onCancel={() => {
+              setShowConnection(false);
+              setConnectError("");
+            }}
+            onSubmit={connect}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 function EmptyState({
   query,
-  intent,
+  filter,
 }: {
   query: string;
-  intent: IntentId | null;
+  filter: LibraryFilter;
 }) {
   const heading = query
     ? "No saves match that thought"
-    : intent
-      ? `Nothing saved to ${intentById[intent].label} yet`
-      : "Your library starts with one bookmark";
+    : filter === "review"
+      ? "Nothing needs your input"
+      : filter
+        ? `Nothing saved to ${intentById[filter].label} yet`
+        : "Your library starts with one bookmark";
   const detail = query
     ? "Try a broader phrase, creator name, or another intent."
-    : "On X, use the bookmark you already know. Lobe handles everything after the click.";
+    : filter === "review"
+      ? "Lobe will keep uncertain saves here until you teach it what they mean to you."
+      : "On X, use the bookmark you already know. Lobe handles everything after the click.";
 
   return (
     <div className="empty-state">
@@ -348,16 +447,19 @@ function EmptyState({
       </span>
       <h2>{heading}</h2>
       <p>{detail}</p>
-      {!query && !intent && (
-        <a
-          className="button primary"
-          href="https://x.com/home"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Bookmark something on X <ExternalLink size={16} />
-        </a>
+      {!query && !filter && (
+        <Button asChild size="lg" className="button primary">
+          <a href="https://x.com/home" target="_blank" rel="noreferrer">
+            Bookmark something on X
+            <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />
+          </a>
+        </Button>
       )}
     </div>
   );
+}
+
+function matchesFilter(save: Save, filter: LibraryFilter): boolean {
+  if (filter === "review") return save.needsReview;
+  return !filter || save.intent === filter;
 }

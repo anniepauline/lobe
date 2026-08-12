@@ -17,6 +17,7 @@ export type ExtensionRequest =
   | { type: "save:create"; capture: CapturedPost }
   | { type: "save:remove"; canonicalUrl: string }
   | { type: "save:get"; id: string }
+  | { type: "save:feedback:pending" }
   | { type: "save:intent"; id: string; intent: IntentId }
   | ({ type: "save:feedback"; id: string } & SubmitFeedbackRequest)
   | { type: "save:feedback:dismiss"; id: string }

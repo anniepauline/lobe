@@ -143,6 +143,7 @@ export type SubmitFeedbackRequest = z.infer<typeof submitFeedbackRequestSchema>;
 
 export const tasteProfileSchema = z.object({
   totalSaves: z.number().int().nonnegative(),
+  reviewCount: z.number().int().nonnegative(),
   intentCounts: z.record(intentIdSchema, z.number().int().nonnegative()),
   topTopics: z.array(
     z.object({

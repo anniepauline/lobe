@@ -1,3 +1,5 @@
+import "@fontsource-variable/geist";
+
 import {
   bundledXRecipe,
   DEFAULT_EXTENSION_SETTINGS,
@@ -77,35 +79,46 @@ async function waitUntilOrganized(initial: Save): Promise<Save> {
 }
 
 function showIntentReview(toast: LobeToast, save: Save): void {
-  const candidates = save.suggestedIntents.slice(0, 3);
-  toast.show({
-    title: "Why did you save this?",
-    detail: save.summary ?? "Choose the intent that fits best.",
-    duration: 18_000,
-    buttons: candidates.map((intent) => ({
-      label: intentById[intent].questionLabel,
-      color: intentById[intent].color,
-      onClick: () => {
-        void sendExtensionMessage<Save>({
-          type: "save:intent",
-          id: save.id,
-          intent,
-        })
-          .then((updated) => {
-            toast.show({
-              title: `Saved to ${intentById[updated.intent ?? intent].label}`,
-              tone: "success",
-            });
-          })
-          .catch((error: unknown) => {
-            toast.show({
-              title: "Could not update this save",
-              detail: error instanceof Error ? error.message : undefined,
-              tone: "error",
-            });
-          });
-      },
-    })),
+  const candidates = [
+    ...new Set(
+      save.intent
+        ? [save.intent, ...save.suggestedIntents]
+        : save.suggestedIntents,
+    ),
+  ].slice(0, 3);
+  const selectedIntent = save.intent ?? candidates[0];
+  if (!selectedIntent || candidates.length === 0) {
+    return;
+  }
+
+  toast.showFeedback({
+    summary: save.summary ?? "Tell Lobe what made this worth keeping.",
+    intents: candidates,
+    selectedIntent,
+    onSubmit: async (intent, reason) => {
+      await sendExtensionMessage<Save>({
+        type: "save:feedback",
+        id: save.id,
+        intent,
+        reason,
+      });
+      toast.show({
+        title: `Learning your ${intentById[intent].label.toLocaleLowerCase()} pattern`,
+        detail: "This save is being reprocessed in the background.",
+        tone: "success",
+      });
+    },
+    onDismiss: async () => {
+      const updated = await sendExtensionMessage<Save>({
+        type: "save:feedback:dismiss",
+        id: save.id,
+      });
+      const intent = updated.intent ?? selectedIntent;
+      toast.show({
+        title: `Kept in ${intentById[intent].label}`,
+        detail: "Marked as unsure so you can revisit it later.",
+      });
+    },
   });
 }
 
@@ -123,7 +136,11 @@ function showOrganized(
     return;
   }
 
-  if (save.needsReview && save.suggestedIntents.length > 0) {
+  if (
+    save.needsReview &&
+    !save.reviewDismissedAt &&
+    save.suggestedIntents.length > 0
+  ) {
     showIntentReview(toast, save);
     return;
   }
@@ -236,6 +253,7 @@ export default defineContentScript({
     const pendingSaves = new Map<string, Promise<void>>();
     const cancelledSaves = new Set<string>();
     const reportedLayouts = new Set<string>();
+    let checkingReview = false;
 
     void sendExtensionMessage<SelectorRecipe>({ type: "recipe:get" }).then(
       (recipe) => {
@@ -339,7 +357,29 @@ export default defineContentScript({
       );
     };
 
+    const checkPendingReview = async () => {
+      if (checkingReview || toast.isVisible()) {
+        return;
+      }
+
+      checkingReview = true;
+      try {
+        const save = await sendExtensionMessage<Save | null>({
+          type: "save:feedback:pending",
+        });
+        if (save) {
+          showIntentReview(toast, save);
+        }
+      } catch {
+        // Connection errors are already surfaced by the extension popup.
+      } finally {
+        checkingReview = false;
+      }
+    };
+
     window.setTimeout(() => void checkRecipe(), 8_000);
     window.setInterval(() => void checkRecipe(), 30_000);
+    window.setTimeout(() => void checkPendingReview(), 6_000);
+    window.setInterval(() => void checkPendingReview(), 15_000);
   },
 });

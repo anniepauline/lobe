@@ -57,6 +57,7 @@ export class LobeApi {
     options: {
       query: string;
       intent: IntentId | null;
+      needsReview?: boolean;
       cursor?: string;
     },
     signal?: AbortSignal,
@@ -64,6 +65,9 @@ export class LobeApi {
     const query = new URLSearchParams();
     if (options.query) query.set("query", options.query);
     if (options.intent) query.set("intent", options.intent);
+    if (options.needsReview !== undefined) {
+      query.set("needsReview", String(options.needsReview));
+    }
     if (options.cursor) query.set("cursor", options.cursor);
     query.set("limit", "30");
 
@@ -84,6 +88,19 @@ export class LobeApi {
     const response = await this.request(`/v1/saves/${id}/intent`, {
       method: "PATCH",
       body: JSON.stringify({ intent }),
+    });
+    const payload = (await response.json()) as { save: unknown };
+    return saveSchema.parse(payload.save);
+  }
+
+  async submitFeedback(
+    id: string,
+    intent: IntentId,
+    reason: string,
+  ): Promise<Save> {
+    const response = await this.request(`/v1/saves/${id}/feedback`, {
+      method: "POST",
+      body: JSON.stringify({ intent, reason }),
     });
     const payload = (await response.json()) as { save: unknown };
     return saveSchema.parse(payload.save);

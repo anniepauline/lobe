@@ -1,4 +1,14 @@
-import { ArrowRight, KeyRound, Server } from "lucide-react";
+import {
+  ArrowRight01Icon,
+  Key01Icon,
+  ServerStack01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Alert, AlertDescription } from "@lobe/ui/components/alert";
+import { Button } from "@lobe/ui/components/button";
+import { Card } from "@lobe/ui/components/card";
+import { Input } from "@lobe/ui/components/input";
+import { Label } from "@lobe/ui/components/label";
 import { useState, type FormEvent } from "react";
 
 import type { Connection } from "../config";
@@ -28,9 +38,9 @@ export function ConnectionForm({
     void onSubmit(connection);
   };
 
-  return (
-    <div className={compact ? "connection-modal" : "connection-screen"}>
-      <form className="connection-card" onSubmit={submit}>
+  const card = (
+    <Card className="connection-card">
+      <form className="connection-form" onSubmit={submit}>
         <div className="connection-brand">
           <Logo size={40} />
           <span>Lobe</span>
@@ -44,11 +54,11 @@ export function ConnectionForm({
           </p>
         </div>
 
-        <label className="input-shell">
-          <Server size={17} />
+        <Label className="input-shell">
+          <HugeiconsIcon icon={ServerStack01Icon} size={17} />
           <span>
             <small>Server URL</small>
-            <input
+            <Input
               type="url"
               required
               value={connection.apiUrl}
@@ -60,12 +70,12 @@ export function ConnectionForm({
               }
             />
           </span>
-        </label>
-        <label className="input-shell">
-          <KeyRound size={17} />
+        </Label>
+        <Label className="input-shell">
+          <HugeiconsIcon icon={Key01Icon} size={17} />
           <span>
             <small>API token</small>
-            <input
+            <Input
               type="password"
               required
               autoComplete="off"
@@ -78,23 +88,34 @@ export function ConnectionForm({
               }
             />
           </span>
-        </label>
+        </Label>
 
-        {error && <div className="form-error">{error}</div>}
+        {error && (
+          <Alert variant="destructive" className="form-error">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <div className="connection-actions">
           {onCancel && (
-            <button
+            <Button
+              variant="outline"
+              size="lg"
               className="button secondary"
               type="button"
               onClick={onCancel}
             >
               Cancel
-            </button>
+            </Button>
           )}
-          <button className="button primary" type="submit" disabled={busy}>
+          <Button
+            size="lg"
+            className="button primary"
+            type="submit"
+            disabled={busy}
+          >
             {busy ? "Connecting…" : "Connect"}
-            {!busy && <ArrowRight size={17} />}
-          </button>
+            {!busy && <HugeiconsIcon icon={ArrowRight01Icon} size={17} />}
+          </Button>
         </div>
         {!compact && (
           <small className="privacy-note">
@@ -103,6 +124,8 @@ export function ConnectionForm({
           </small>
         )}
       </form>
-    </div>
+    </Card>
   );
+
+  return compact ? card : <div className="connection-screen">{card}</div>;
 }

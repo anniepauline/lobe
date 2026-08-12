@@ -61,6 +61,7 @@ describe("Lobe web API", () => {
     const result = await api.listSaves({
       query: "rust database",
       intent: "build",
+      needsReview: true,
     });
 
     expect(result.saves).toEqual([save]);
@@ -70,6 +71,7 @@ describe("Lobe web API", () => {
       "rust database",
     );
     expect(new URL(request!.url).searchParams.get("intent")).toBe("build");
+    expect(new URL(request!.url).searchParams.get("needsReview")).toBe("true");
   });
 
   test("surfaces the server error message", async () => {
@@ -85,5 +87,38 @@ describe("Lobe web API", () => {
     });
 
     expect(api.verify()).rejects.toThrow("Token expired.");
+  });
+
+  test("submits an explanation for reprocessing", async () => {
+    let request: Request | null = null;
+    globalThis.fetch = (async (input, init) => {
+      request = new Request(input, init);
+      return Response.json({
+        save: {
+          ...save,
+          status: "pending",
+          intent: "learn",
+          userReason: "I want to study the implementation.",
+        },
+        reprocessing: true,
+      });
+    }) as typeof fetch;
+
+    const api = new LobeApi({
+      apiUrl: "http://localhost:8787",
+      apiToken: "secret-token",
+    });
+    const updated = await api.submitFeedback(
+      save.id,
+      "learn",
+      "I want to study the implementation.",
+    );
+
+    expect(updated.status).toBe("pending");
+    expect(request!.method).toBe("POST");
+    expect(await request!.json()).toEqual({
+      intent: "learn",
+      reason: "I want to study the implementation.",
+    });
   });
 });

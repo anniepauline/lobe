@@ -1,5 +1,9 @@
+import { ArrowUpRight01Icon, Settings02Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { ExtensionStatus } from "@lobe/shared";
-import { ArrowUpRight, Settings2 } from "lucide-react";
+import { Alert, AlertDescription } from "@lobe/ui/components/alert";
+import { Button } from "@lobe/ui/components/button";
+import { Card, CardContent } from "@lobe/ui/components/card";
 import { useEffect, useState } from "react";
 
 import { sendExtensionMessage } from "../../lib/messaging";
@@ -41,42 +45,49 @@ export default function App() {
           <Logo />
           <span>Lobe</span>
         </div>
-        <button
+        <Button
+          variant="outline"
+          size="icon-lg"
           className="icon-button"
           type="button"
           aria-label="Open settings"
           onClick={() => void browser.runtime.openOptionsPage()}
         >
-          <Settings2 size={17} strokeWidth={2} />
-        </button>
+          <HugeiconsIcon icon={Settings02Icon} size={17} strokeWidth={2} />
+        </Button>
       </header>
 
-      <section className="status-panel">
-        <div className={`status-dot ${state.tone}`} />
-        <div>
-          <strong>{state.label}</strong>
-          <p>
-            {status?.configured
-              ? "Use X’s bookmark button. Lobe organizes each save quietly."
-              : "Connect your Lobe server, then bookmark on X as usual."}
-          </p>
-        </div>
-      </section>
+      <Card className="status-panel" size="sm">
+        <CardContent>
+          <div className={`status-dot ${state.tone}`} />
+          <div>
+            <strong>{state.label}</strong>
+            <p>
+              {status?.configured
+                ? "Use X’s bookmark button. Lobe organizes each save quietly."
+                : "Connect your Lobe server, then bookmark on X as usual."}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {status?.ai === "fallback" && (
-        <div className="fallback">
-          AI key missing, local categorization is active.
-        </div>
+        <Alert className="fallback">
+          <AlertDescription>
+            AI key missing, local categorization is active.
+          </AlertDescription>
+        </Alert>
       )}
 
-      <button
+      <Button
+        size="lg"
         className="primary open-library"
         type="button"
         onClick={() => void browser.tabs.create({ url: appUrl })}
       >
         Open library
-        <ArrowUpRight size={16} strokeWidth={2.2} />
-      </button>
+        <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} strokeWidth={2} />
+      </Button>
     </main>
   );
 }

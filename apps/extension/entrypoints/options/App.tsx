@@ -1,9 +1,16 @@
+import { Tick02Icon, ViewIcon, ViewOffIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   DEFAULT_EXTENSION_SETTINGS,
   type ExtensionSettings,
   type ExtensionStatus,
 } from "@lobe/shared";
-import { Check, Eye, EyeOff } from "lucide-react";
+import { Alert, AlertDescription } from "@lobe/ui/components/alert";
+import { Button } from "@lobe/ui/components/button";
+import { Card } from "@lobe/ui/components/card";
+import { Input } from "@lobe/ui/components/input";
+import { Label } from "@lobe/ui/components/label";
+import { Switch } from "@lobe/ui/components/switch";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { sendExtensionMessage } from "../../lib/messaging";
@@ -83,82 +90,101 @@ export default function App() {
         <span className="eyebrow">Extension settings</span>
       </header>
 
-      <form onSubmit={(event) => void save(event)}>
-        <section>
-          <h1>Connection</h1>
-          <label>
-            <span>Server URL</span>
-            <input
-              type="url"
-              required
-              value={settings.apiUrl}
-              onChange={(event) => update("apiUrl", event.target.value)}
-              placeholder="http://localhost:8787"
-            />
-          </label>
-          <label>
-            <span>API token</span>
-            <div className="token-field">
-              <input
-                type={showToken ? "text" : "password"}
+      <Card className="settings-card">
+        <form onSubmit={(event) => void save(event)}>
+          <section>
+            <h1>Connection</h1>
+            <Label>
+              <span>Server URL</span>
+              <Input
+                type="url"
                 required
-                value={settings.apiToken}
-                onChange={(event) => update("apiToken", event.target.value)}
-                autoComplete="off"
+                value={settings.apiUrl}
+                onChange={(event) => update("apiUrl", event.target.value)}
+                placeholder="http://localhost:8787"
               />
-              <button
-                type="button"
-                aria-label={showToken ? "Hide API token" : "Show API token"}
-                onClick={() => setShowToken((visible) => !visible)}
+            </Label>
+            <Label>
+              <span>API token</span>
+              <div className="token-field">
+                <Input
+                  type={showToken ? "text" : "password"}
+                  required
+                  value={settings.apiToken}
+                  onChange={(event) => update("apiToken", event.target.value)}
+                  autoComplete="off"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-lg"
+                  type="button"
+                  aria-label={showToken ? "Hide API token" : "Show API token"}
+                  onClick={() => setShowToken((visible) => !visible)}
+                >
+                  <HugeiconsIcon
+                    icon={showToken ? ViewOffIcon : ViewIcon}
+                    size={17}
+                  />
+                </Button>
+              </div>
+            </Label>
+          </section>
+
+          <section>
+            <h2>Capture</h2>
+            <Label className="toggle-row">
+              <span>
+                <strong>Post screenshots</strong>
+                <small>
+                  Keep the visual state from the moment you saved it.
+                </small>
+              </span>
+              <Switch
+                checked={settings.captureScreenshot}
+                onCheckedChange={(checked) =>
+                  update("captureScreenshot", checked)
+                }
+              />
+            </Label>
+            <Label className="toggle-row">
+              <span>
+                <strong>Save confirmations</strong>
+                <small>Show a compact confirmation after bookmarking.</small>
+              </span>
+              <Switch
+                checked={settings.showConfirmation}
+                onCheckedChange={(checked) =>
+                  update("showConfirmation", checked)
+                }
+              />
+            </Label>
+          </section>
+
+          <footer>
+            {message ? (
+              <Alert
+                variant={saveState === "error" ? "destructive" : "default"}
+                className={saveState}
               >
-                {showToken ? <EyeOff size={17} /> : <Eye size={17} />}
-              </button>
-            </div>
-          </label>
-        </section>
-
-        <section>
-          <h2>Capture</h2>
-          <label className="toggle-row">
-            <span>
-              <strong>Post screenshots</strong>
-              <small>Keep the visual state from the moment you saved it.</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.captureScreenshot}
-              onChange={(event) =>
-                update("captureScreenshot", event.target.checked)
-              }
-            />
-          </label>
-          <label className="toggle-row">
-            <span>
-              <strong>Save confirmations</strong>
-              <small>Show a compact confirmation after bookmarking.</small>
-            </span>
-            <input
-              type="checkbox"
-              checked={settings.showConfirmation}
-              onChange={(event) =>
-                update("showConfirmation", event.target.checked)
-              }
-            />
-          </label>
-        </section>
-
-        <footer>
-          <p className={saveState}>{message}</p>
-          <button
-            className="primary"
-            type="submit"
-            disabled={saveState === "saving"}
-          >
-            {saveState === "saved" && <Check size={16} />}
-            {saveState === "saving" ? "Saving…" : "Save settings"}
-          </button>
-        </footer>
-      </form>
+                <AlertDescription>{message}</AlertDescription>
+              </Alert>
+            ) : (
+              <span />
+            )}
+            <Button
+              size="lg"
+              className="primary"
+              type="submit"
+              disabled={saveState === "saving"}
+            >
+              {saveState === "saved" && (
+                <HugeiconsIcon icon={Tick02Icon} size={16} />
+              )}
+              {saveState === "saving" ? "Saving…" : "Save settings"}
+            </Button>
+          </footer>
+        </form>
+      </Card>
     </main>
   );
 }

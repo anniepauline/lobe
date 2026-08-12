@@ -7,6 +7,7 @@ import {
 
 interface TasteRow {
   intent: IntentId | null;
+  needsReview: boolean;
   topics: string[];
   authorName: string;
   authorHandle: string;
@@ -64,6 +65,7 @@ export function buildTasteProfile(rows: TasteRow[]): TasteProfile {
 
   return tasteProfileSchema.parse({
     totalSaves: rows.length,
+    reviewCount: rows.filter((row) => row.needsReview).length,
     intentCounts,
     topTopics,
     topCreators,

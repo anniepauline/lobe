@@ -17,21 +17,29 @@ header {
 }
 
 .status-panel {
+  margin: 26px 0 20px;
+  border: 1px solid #27272a;
+  padding: 0;
+  background: #09090b;
+}
+
+.status-panel > [data-slot="card-content"] {
   display: grid;
   grid-template-columns: 9px 1fr;
   gap: 11px;
-  margin: 26px 0 20px;
+  padding: 16px;
 }
 
 .status-panel strong {
   display: block;
   margin-top: -4px;
   font-size: 15px;
+  font-weight: 650;
 }
 
 .status-panel p {
   margin: 5px 0 0;
-  color: #746c64;
+  color: #a1a1aa;
   font-size: 13px;
   line-height: 1.45;
 }
@@ -41,22 +49,25 @@ header {
   height: 8px;
   margin-top: 3px;
   border-radius: 50%;
-  background: #b6ada2;
+  background: #52525b;
 }
 
 .status-dot.online {
-  background: #3e9a62;
-  box-shadow: 0 0 0 3px #dce9df;
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
 }
 
 .status-dot.offline {
-  background: #b86e45;
-  box-shadow: 0 0 0 3px #eaded5;
+  background: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 .fallback {
-  margin: -7px 0 16px 20px;
-  color: #84603f;
+  margin: -7px 0 16px;
+  border-color: rgba(245, 158, 11, 0.24);
+  padding: 9px 10px;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.08);
   font-size: 12px;
 }
 

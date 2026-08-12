@@ -12,6 +12,7 @@ import {
   eq,
   getTableColumns,
   isNotNull,
+  isNull,
   lt,
   ne,
   type SQL,
@@ -29,6 +30,7 @@ export interface CreateSaveResult {
 export interface ListSavesOptions {
   query: string;
   intent: IntentId | null;
+  needsReview?: boolean | null;
   cursor: string | null;
   limit: number;
   embedding?: number[];
@@ -116,6 +118,23 @@ export async function getSave(id: string): Promise<SaveRow | null> {
   return row ?? null;
 }
 
+export async function getPendingReview(): Promise<SaveRow | null> {
+  const [row] = await db
+    .select()
+    .from(saves)
+    .where(
+      and(
+        eq(saves.status, "ready"),
+        eq(saves.needsReview, true),
+        isNull(saves.reviewDismissedAt),
+      ),
+    )
+    .orderBy(desc(saves.createdAt))
+    .limit(1);
+
+  return row ?? null;
+}
+
 export async function deleteSaveByUrl(canonicalUrl: string): Promise<boolean> {
   const removed = await db
     .delete(saves)
@@ -132,6 +151,10 @@ export async function listSaves(
 
   if (options.intent) {
     conditions.push(eq(saves.intent, options.intent));
+  }
+
+  if (options.needsReview !== null && options.needsReview !== undefined) {
+    conditions.push(eq(saves.needsReview, options.needsReview));
   }
 
   if (options.cursor && !options.embedding) {
@@ -424,7 +447,12 @@ export async function getClassificationFeedback(
 }
 
 export async function getTasteProfileRows(): Promise<
-  Array<Pick<SaveRow, "intent" | "topics" | "authorName" | "authorHandle">>
+  Array<
+    Pick<
+      SaveRow,
+      "intent" | "topics" | "authorName" | "authorHandle" | "needsReview"
+    >
+  >
 > {
   return db
     .select({
@@ -432,6 +460,7 @@ export async function getTasteProfileRows(): Promise<
       topics: saves.topics,
       authorName: saves.authorName,
       authorHandle: saves.authorHandle,
+      needsReview: saves.needsReview,
     })
     .from(saves)
     .where(eq(saves.status, "ready"));
