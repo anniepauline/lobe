@@ -1,0 +1,65 @@
+body {
+  width: 340px;
+}
+
+main {
+  padding: 18px;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  font-size: 18px;
+}
+
+.status-panel {
+  display: grid;
+  grid-template-columns: 9px 1fr;
+  gap: 11px;
+  margin: 26px 0 20px;
+}
+
+.status-panel strong {
+  display: block;
+  margin-top: -4px;
+  font-size: 15px;
+}
+
+.status-panel p {
+  margin: 5px 0 0;
+  color: #746c64;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: #b6ada2;
+}
+
+.status-dot.online {
+  background: #3e9a62;
+  box-shadow: 0 0 0 3px #dce9df;
+}
+
+.status-dot.offline {
+  background: #b86e45;
+  box-shadow: 0 0 0 3px #eaded5;
+}
+
+.fallback {
+  margin: -7px 0 16px 20px;
+  color: #84603f;
+  font-size: 12px;
+}
+
+.open-library {
+  width: 100%;
+}

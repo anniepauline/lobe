@@ -38,6 +38,8 @@ export const screenshotSchema = z.object({
   height: z.number().int().positive().max(8_000),
 });
 
+export type Screenshot = z.infer<typeof screenshotSchema>;
+
 export const capturedPostSchema = z.object({
   platform: platformSchema,
   sourceId: z.string().regex(/^\d+$/),

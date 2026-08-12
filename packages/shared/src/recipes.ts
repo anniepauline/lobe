@@ -67,6 +67,8 @@ export const compactDomNodeSchema = z.object({
   svgPathPrefix: z.string().max(160).nullable(),
 });
 
+export type CompactDomNode = z.infer<typeof compactDomNodeSchema>;
+
 export const recipeFailureRequestSchema = z.object({
   platform: platformSchema,
   currentRecipeVersion: z.number().int().positive(),

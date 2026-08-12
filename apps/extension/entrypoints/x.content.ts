@@ -1,0 +1,315 @@
+import {
+  bundledXRecipe,
+  DEFAULT_EXTENSION_SETTINGS,
+  intentById,
+  type CapturedPost,
+  type ExtensionSettings,
+  type Save,
+  type SelectorRecipe,
+} from "@lobe/shared";
+
+import { sendExtensionMessage } from "../lib/messaging";
+import { LobeToast } from "../lib/toast";
+import { createRecipeFailure } from "../lib/x/dom-sketch";
+import { extractPost } from "../lib/x/extract";
+import { capturePostScreenshot } from "../lib/x/screenshot";
+
+interface BookmarkInteraction {
+  kind: "save" | "remove";
+  post: HTMLElement;
+  recipe: SelectorRecipe;
+}
+
+function closestElement(target: Element, selector: string): HTMLElement | null {
+  try {
+    return target.closest<HTMLElement>(selector);
+  } catch {
+    return null;
+  }
+}
+
+function findInteraction(
+  target: Element,
+  activeRecipe: SelectorRecipe,
+): BookmarkInteraction | null {
+  for (const recipe of [activeRecipe, bundledXRecipe]) {
+    const unsavedControl = closestElement(
+      target,
+      recipe.selectors.unsavedControl,
+    );
+    const savedControl = closestElement(target, recipe.selectors.savedControl);
+    const control = unsavedControl ?? savedControl;
+    const post = control
+      ? closestElement(control, recipe.selectors.post)
+      : null;
+
+    if (post) {
+      return {
+        kind: unsavedControl ? "save" : "remove",
+        post,
+        recipe,
+      };
+    }
+  }
+
+  return null;
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+}
+
+async function waitUntilOrganized(initial: Save): Promise<Save> {
+  let current = initial;
+  for (let attempt = 0; attempt < 18; attempt += 1) {
+    if (current.status === "ready" || current.status === "failed") {
+      return current;
+    }
+
+    await delay(1_000);
+    current = await sendExtensionMessage<Save>({
+      type: "save:get",
+      id: current.id,
+    });
+  }
+
+  return current;
+}
+
+function showIntentReview(toast: LobeToast, save: Save): void {
+  const candidates = save.suggestedIntents.slice(0, 3);
+  toast.show({
+    title: "Why did you save this?",
+    detail: save.summary ?? "Choose the intent that fits best.",
+    duration: 18_000,
+    buttons: candidates.map((intent) => ({
+      label: intentById[intent].questionLabel,
+      color: intentById[intent].color,
+      onClick: () => {
+        void sendExtensionMessage<Save>({
+          type: "save:intent",
+          id: save.id,
+          intent,
+        })
+          .then((updated) => {
+            toast.show({
+              title: `Saved to ${intentById[updated.intent ?? intent].label}`,
+              tone: "success",
+            });
+          })
+          .catch((error: unknown) => {
+            toast.show({
+              title: "Could not update this save",
+              detail: error instanceof Error ? error.message : undefined,
+              tone: "error",
+            });
+          });
+      },
+    })),
+  });
+}
+
+function showOrganized(
+  toast: LobeToast,
+  save: Save,
+  settings: ExtensionSettings,
+): void {
+  if (save.status === "failed") {
+    toast.show({
+      title: "Saved, but organization failed",
+      detail: save.failureReason ?? "Lobe will keep the original post.",
+      tone: "error",
+    });
+    return;
+  }
+
+  if (save.needsReview && save.suggestedIntents.length > 0) {
+    showIntentReview(toast, save);
+    return;
+  }
+
+  if (!settings.showConfirmation) {
+    toast.dismiss();
+    return;
+  }
+
+  if (save.status !== "ready" || !save.intent) {
+    toast.show({
+      title: "Saved to Lobe",
+      detail: "Organization is continuing in the background.",
+      tone: "success",
+    });
+    return;
+  }
+
+  toast.show({
+    title: `Saved to ${intentById[save.intent].label}`,
+    detail: save.summary ?? undefined,
+    tone: "success",
+  });
+}
+
+async function savePost(
+  toast: LobeToast,
+  capture: CapturedPost,
+  post: HTMLElement,
+  settings: ExtensionSettings,
+): Promise<void> {
+  if (!settings.apiToken.trim()) {
+    toast.show({
+      title: "Connect Lobe to start saving",
+      detail: "Add your server token once, then use X normally.",
+      buttons: [
+        {
+          label: "Open settings",
+          onClick: () => void browser.runtime.openOptionsPage(),
+        },
+      ],
+    });
+    return;
+  }
+
+  if (settings.showConfirmation) {
+    toast.show({ title: "Saving to Lobe…", duration: 0 });
+  }
+
+  const screenshot = settings.captureScreenshot
+    ? await capturePostScreenshot(post)
+    : null;
+  const saved = await sendExtensionMessage<Save>({
+    type: "save:create",
+    capture: { ...capture, screenshot },
+  });
+  showOrganized(toast, await waitUntilOrganized(saved), settings);
+}
+
+async function removePost(
+  toast: LobeToast,
+  canonicalUrl: string,
+  settings: ExtensionSettings,
+  pendingSave: Promise<void> | undefined,
+): Promise<void> {
+  await pendingSave?.catch(() => undefined);
+  await sendExtensionMessage<{ removed: true }>({
+    type: "save:remove",
+    canonicalUrl,
+  });
+
+  if (settings.showConfirmation) {
+    toast.show({ title: "Removed from Lobe" });
+  }
+}
+
+function hasSelector(document: Document, selector: string): boolean {
+  try {
+    return Boolean(document.querySelector(selector));
+  } catch {
+    return false;
+  }
+}
+
+export default defineContentScript({
+  matches: ["https://x.com/*", "https://twitter.com/*"],
+  runAt: "document_start",
+  main() {
+    const toast = new LobeToast();
+    let activeRecipe = bundledXRecipe;
+    let settings = DEFAULT_EXTENSION_SETTINGS;
+    const pendingSaves = new Map<string, Promise<void>>();
+    const reportedLayouts = new Set<string>();
+
+    void sendExtensionMessage<SelectorRecipe>({ type: "recipe:get" }).then(
+      (recipe) => {
+        activeRecipe = recipe;
+      },
+    );
+    void sendExtensionMessage<ExtensionSettings>({ type: "settings:get" }).then(
+      (loaded) => {
+        settings = loaded;
+      },
+    );
+
+    document.addEventListener(
+      "click",
+      (event) => {
+        if (!(event.target instanceof Element)) {
+          return;
+        }
+
+        const interaction = findInteraction(event.target, activeRecipe);
+        if (!interaction) {
+          return;
+        }
+
+        const capture = extractPost(
+          interaction.post,
+          interaction.recipe,
+          location.href,
+        );
+        if (!capture) {
+          toast.show({
+            title: "Lobe could not read this post",
+            detail: "The X layout will be checked in the background.",
+            tone: "error",
+          });
+          return;
+        }
+
+        if (interaction.kind === "save") {
+          if (pendingSaves.has(capture.canonicalUrl)) {
+            return;
+          }
+
+          const task = savePost(toast, capture, interaction.post, settings)
+            .catch((error: unknown) => {
+              toast.show({
+                title: "Could not sync this bookmark",
+                detail: error instanceof Error ? error.message : undefined,
+                tone: "error",
+              });
+            })
+            .finally(() => pendingSaves.delete(capture.canonicalUrl));
+          pendingSaves.set(capture.canonicalUrl, task);
+          return;
+        }
+
+        void removePost(
+          toast,
+          capture.canonicalUrl,
+          settings,
+          pendingSaves.get(capture.canonicalUrl),
+        ).catch((error: unknown) => {
+          toast.show({
+            title: "Could not remove this bookmark",
+            detail: error instanceof Error ? error.message : undefined,
+            tone: "error",
+          });
+        });
+      },
+      true,
+    );
+
+    const checkRecipe = async () => {
+      if (
+        !document.querySelector("article, [role=article]") ||
+        hasSelector(document, activeRecipe.selectors.unsavedControl) ||
+        hasSelector(document, activeRecipe.selectors.savedControl)
+      ) {
+        return;
+      }
+
+      const failure = await createRecipeFailure(document, activeRecipe);
+      if (!failure || reportedLayouts.has(failure.layoutFingerprint)) {
+        return;
+      }
+
+      reportedLayouts.add(failure.layoutFingerprint);
+      await sendExtensionMessage({ type: "recipe:failure", failure }).catch(
+        () => undefined,
+      );
+    };
+
+    window.setTimeout(() => void checkRecipe(), 8_000);
+    window.setInterval(() => void checkRecipe(), 30_000);
+  },
+});

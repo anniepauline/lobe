@@ -1,5 +1,6 @@
 {
   "name": "@lobe/extension",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,6 +13,7 @@
   },
   "dependencies": {
     "@lobe/shared": "workspace:*",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^1.31.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

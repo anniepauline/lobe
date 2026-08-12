@@ -20,15 +20,16 @@ export const saveListQuerySchema = z.object({
 
 export const extensionSettingsSchema = z.object({
   apiUrl: z.url(),
-  apiToken: z.string().min(1),
+  apiToken: z.string().max(500),
   showConfirmation: z.boolean(),
   captureScreenshot: z.boolean(),
 });
 
 export type ExtensionSettings = z.infer<typeof extensionSettingsSchema>;
 
-export const DEFAULT_EXTENSION_SETTINGS: Omit<ExtensionSettings, "apiToken"> = {
+export const DEFAULT_EXTENSION_SETTINGS: ExtensionSettings = {
   apiUrl: "http://localhost:8787",
+  apiToken: "",
   showConfirmation: true,
   captureScreenshot: true,
 };
