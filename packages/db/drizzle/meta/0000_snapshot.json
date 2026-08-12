@@ -132,12 +132,8 @@
           "name": "background_jobs_save_id_saves_id_fk",
           "tableFrom": "background_jobs",
           "tableTo": "saves",
-          "columnsFrom": [
-            "save_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["save_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -145,12 +141,8 @@
           "name": "background_jobs_recipe_failure_id_recipe_failures_id_fk",
           "tableFrom": "background_jobs",
           "tableTo": "recipe_failures",
-          "columnsFrom": [
-            "recipe_failure_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["recipe_failure_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -228,12 +220,8 @@
           "name": "intent_feedback_save_id_saves_id_fk",
           "tableFrom": "intent_feedback",
           "tableTo": "saves",
-          "columnsFrom": [
-            "save_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["save_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -781,68 +769,37 @@
     "public.background_job_status": {
       "name": "background_job_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processing",
-        "completed",
-        "failed"
-      ]
+      "values": ["pending", "processing", "completed", "failed"]
     },
     "public.background_job_type": {
       "name": "background_job_type",
       "schema": "public",
-      "values": [
-        "classify_save",
-        "discover_recipe"
-      ]
+      "values": ["classify_save", "discover_recipe"]
     },
     "public.intent": {
       "name": "intent",
       "schema": "public",
-      "values": [
-        "try",
-        "build",
-        "learn",
-        "reference",
-        "buy",
-        "share"
-      ]
+      "values": ["try", "build", "learn", "reference", "buy", "share"]
     },
     "public.platform": {
       "name": "platform",
       "schema": "public",
-      "values": [
-        "x"
-      ]
+      "values": ["x"]
     },
     "public.recipe_failure_status": {
       "name": "recipe_failure_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processing",
-        "resolved",
-        "ignored"
-      ]
+      "values": ["pending", "processing", "resolved", "ignored"]
     },
     "public.recipe_source": {
       "name": "recipe_source",
       "schema": "public",
-      "values": [
-        "bundled",
-        "ai",
-        "manual"
-      ]
+      "values": ["bundled", "ai", "manual"]
     },
     "public.save_status": {
       "name": "save_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "processing",
-        "ready",
-        "failed"
-      ]
+      "values": ["pending", "processing", "ready", "failed"]
     }
   },
   "schemas": {},
