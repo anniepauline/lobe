@@ -104,8 +104,10 @@ export const saveSchema = z.object({
   summary: z.string().nullable(),
   topics: z.array(z.string()),
   why: z.string().nullable(),
+  userReason: z.string().nullable(),
   suggestedIntents: z.array(intentIdSchema),
   needsReview: z.boolean(),
+  reviewDismissedAt: z.iso.datetime().nullable(),
   failureReason: z.string().nullable(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
@@ -131,6 +133,13 @@ export const saveListResponseSchema = z.object({
 export const updateIntentRequestSchema = z.object({
   intent: intentIdSchema,
 });
+
+export const submitFeedbackRequestSchema = z.object({
+  intent: intentIdSchema,
+  reason: z.string().trim().min(3).max(1_000),
+});
+
+export type SubmitFeedbackRequest = z.infer<typeof submitFeedbackRequestSchema>;
 
 export const tasteProfileSchema = z.object({
   totalSaves: z.number().int().nonnegative(),

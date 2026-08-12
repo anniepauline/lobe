@@ -5,6 +5,7 @@ import {
   completeJob,
   completeSaveClassification,
   failSave,
+  getClassificationFeedback,
   getRecipeFailure,
   getSave,
   markRecipeFailureIgnored,
@@ -63,15 +64,15 @@ export async function processNextJob(): Promise<boolean> {
 
       await markSaveProcessing(row.id);
       const capture = rowToCapture(row);
-      const { classification } = await classifyPost(capture);
       const embedding = await createEmbedding(
         [
-          classification.summary,
           capture.content,
-          `Intent: ${classification.intent}`,
-          `Topics: ${classification.topics.join(", ")}`,
+          `Author: ${capture.author.name} ${capture.author.handle}`,
+          ...capture.media.map((item) => item.alt ?? ""),
         ].join("\n"),
       );
+      const feedback = await getClassificationFeedback(row.id, embedding);
+      const { classification } = await classifyPost(capture, feedback);
 
       await completeSaveClassification(row.id, classification, embedding);
       await completeJob(job.id);

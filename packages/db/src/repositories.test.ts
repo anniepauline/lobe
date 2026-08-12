@@ -8,12 +8,15 @@ import {
   completeSaveClassification,
   createSave,
   deleteSaveByUrl,
+  dismissSaveReview,
   getActiveRecipe,
+  getClassificationFeedback,
   getSave,
   listSaves,
   markSaveProcessing,
   seedBundledRecipe,
   serializeSave,
+  submitSaveFeedback,
   updateSaveIntent,
 } from "./index";
 
@@ -110,5 +113,21 @@ describeDatabase("Postgres repositories", () => {
     const updated = await updateSaveIntent(created.row.id, "learn");
     expect(updated?.intent).toBe("learn");
     expect(updated ? serializeSave(updated).needsReview : true).toBe(false);
+
+    const dismissed = await dismissSaveReview(created.row.id);
+    expect(dismissed?.reviewDismissedAt).toBeInstanceOf(Date);
+
+    const feedback = await submitSaveFeedback(
+      created.row.id,
+      "build",
+      "I want to recreate the storage engine in another project.",
+    );
+    expect(feedback?.status).toBe("pending");
+    expect(feedback?.userReason).toContain("recreate");
+    expect(feedback?.reviewDismissedAt).toBeNull();
+
+    const guidance = await getClassificationFeedback(created.row.id, embedding);
+    expect(guidance.direct?.intent).toBe("build");
+    expect(guidance.direct?.reason).toContain("storage engine");
   });
 });

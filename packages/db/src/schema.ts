@@ -140,11 +140,15 @@ export const saves = pgTable(
     summary: text("summary"),
     topics: jsonb("topics").$type<string[]>().notNull().default([]),
     why: text("why"),
+    userReason: text("user_reason"),
     suggestedIntents: jsonb("suggested_intents")
       .$type<IntentId[]>()
       .notNull()
       .default([]),
     needsReview: boolean("needs_review").notNull().default(false),
+    reviewDismissedAt: timestamp("review_dismissed_at", {
+      withTimezone: true,
+    }),
     failureReason: text("failure_reason"),
     embedding: vector("embedding", { dimensions: 1536 }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -181,6 +185,7 @@ export const intentFeedback = pgTable(
       .references(() => saves.id, { onDelete: "cascade" }),
     previousIntent: intentEnum("previous_intent").$type<IntentId>(),
     selectedIntent: intentEnum("selected_intent").$type<IntentId>().notNull(),
+    reason: text("reason"),
     modelConfidence: real("model_confidence"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

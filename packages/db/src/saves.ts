@@ -13,6 +13,7 @@ import {
   getTableColumns,
   isNotNull,
   lt,
+  ne,
   type SQL,
   sql,
 } from "drizzle-orm";
@@ -36,6 +37,18 @@ export interface ListSavesOptions {
 export interface ListSavesResult {
   rows: SaveRow[];
   nextCursor: string | null;
+}
+
+export interface FeedbackExample {
+  intent: IntentId;
+  reason: string;
+  excerpt: string;
+  similarity: number | null;
+}
+
+export interface ClassificationFeedback {
+  direct: FeedbackExample | null;
+  similar: FeedbackExample[];
 }
 
 function captureToInsert(capture: CapturedPost): typeof saves.$inferInsert {
@@ -269,6 +282,7 @@ export async function updateSaveIntent(
       .set({
         intent: selectedIntent,
         needsReview: false,
+        reviewDismissedAt: null,
         suggestedIntents: [],
         updatedAt: new Date(),
       })
@@ -277,6 +291,136 @@ export async function updateSaveIntent(
 
     return updated ?? null;
   });
+}
+
+export async function submitSaveFeedback(
+  id: string,
+  selectedIntent: IntentId,
+  reason: string,
+): Promise<SaveRow | null> {
+  return db.transaction(async (transaction) => {
+    const [current] = await transaction
+      .select()
+      .from(saves)
+      .where(eq(saves.id, id))
+      .limit(1);
+
+    if (!current) {
+      return null;
+    }
+
+    await transaction.insert(intentFeedback).values({
+      saveId: current.id,
+      previousIntent: current.intent,
+      selectedIntent,
+      modelConfidence: current.confidence,
+      reason,
+    });
+
+    const [updated] = await transaction
+      .update(saves)
+      .set({
+        status: "pending",
+        intent: selectedIntent,
+        confidence: 1,
+        why: reason,
+        userReason: reason,
+        needsReview: false,
+        reviewDismissedAt: null,
+        suggestedIntents: [],
+        failureReason: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(saves.id, id))
+      .returning();
+
+    await transaction.insert(backgroundJobs).values({
+      type: "classify_save",
+      saveId: current.id,
+    });
+
+    return updated ?? null;
+  });
+}
+
+export async function dismissSaveReview(id: string): Promise<SaveRow | null> {
+  const [updated] = await db
+    .update(saves)
+    .set({
+      reviewDismissedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(saves.id, id))
+    .returning();
+
+  return updated ?? null;
+}
+
+export async function getClassificationFeedback(
+  id: string,
+  embedding: number[] | null,
+): Promise<ClassificationFeedback> {
+  const [directRow] = await db
+    .select({
+      intent: intentFeedback.selectedIntent,
+      reason: intentFeedback.reason,
+      excerpt: saves.content,
+    })
+    .from(intentFeedback)
+    .innerJoin(saves, eq(intentFeedback.saveId, saves.id))
+    .where(and(eq(intentFeedback.saveId, id), isNotNull(intentFeedback.reason)))
+    .orderBy(desc(intentFeedback.createdAt))
+    .limit(1);
+
+  const direct = directRow?.reason
+    ? {
+        intent: directRow.intent,
+        reason: directRow.reason,
+        excerpt: directRow.excerpt.slice(0, 500),
+        similarity: 1,
+      }
+    : null;
+
+  if (!embedding) {
+    return { direct, similar: [] };
+  }
+
+  const distance = cosineDistance(saves.embedding, embedding);
+  const similarity = sql<number>`1 - (${distance})`;
+  const rows = await db
+    .select({
+      intent: intentFeedback.selectedIntent,
+      reason: intentFeedback.reason,
+      excerpt: saves.content,
+      similarity,
+    })
+    .from(saves)
+    .innerJoin(intentFeedback, eq(intentFeedback.saveId, saves.id))
+    .where(
+      and(
+        ne(saves.id, id),
+        isNotNull(saves.embedding),
+        isNotNull(intentFeedback.reason),
+      ),
+    )
+    .orderBy(asc(distance))
+    .limit(6);
+
+  return {
+    direct,
+    similar: rows
+      .filter(
+        (row): row is typeof row & { reason: string } =>
+          Boolean(row.reason) && row.similarity >= 0.68,
+      )
+      .slice(0, 3)
+      .map((row) => ({
+        intent: row.intent,
+        reason: row.reason,
+        excerpt: row.excerpt.slice(0, 500),
+        similarity: row.similarity,
+      })),
+  };
 }
 
 export async function getTasteProfileRows(): Promise<

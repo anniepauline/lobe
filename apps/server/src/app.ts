@@ -7,6 +7,7 @@ import {
 import {
   createSave,
   deleteSaveByUrl,
+  dismissSaveReview,
   getActiveRecipe,
   getSave,
   getScreenshot,
@@ -15,12 +16,14 @@ import {
   pingDatabase,
   recordRecipeFailure,
   serializeSave,
+  submitSaveFeedback,
   updateSaveIntent,
 } from "@lobe/db";
 import {
   createSaveRequestSchema,
   recipeFailureRequestSchema,
   saveListQuerySchema,
+  submitFeedbackRequestSchema,
   updateIntentRequestSchema,
 } from "@lobe/shared";
 import { Hono } from "hono";
@@ -239,6 +242,57 @@ app.patch("/v1/saves/:id/intent", async (context) => {
   }
 
   const row = await updateSaveIntent(context.req.param("id"), body.data.intent);
+  return row
+    ? context.json({ save: serializeSave(row) })
+    : context.json(
+        {
+          error: {
+            code: "not_found",
+            message: "That bookmark does not exist.",
+          },
+        },
+        404,
+      );
+});
+
+app.post("/v1/saves/:id/feedback", async (context) => {
+  const body = submitFeedbackRequestSchema.safeParse(
+    await context.req.json().catch(() => null),
+  );
+  if (!body.success) {
+    return context.json(
+      {
+        error: {
+          code: "invalid_feedback",
+          message:
+            body.error.issues[0]?.message ??
+            "Explain why this bookmark matters to you.",
+        },
+      },
+      400,
+    );
+  }
+
+  const row = await submitSaveFeedback(
+    context.req.param("id"),
+    body.data.intent,
+    body.data.reason,
+  );
+  return row
+    ? context.json({ save: serializeSave(row), reprocessing: true }, 202)
+    : context.json(
+        {
+          error: {
+            code: "not_found",
+            message: "That bookmark does not exist.",
+          },
+        },
+        404,
+      );
+});
+
+app.post("/v1/saves/:id/feedback/dismiss", async (context) => {
+  const row = await dismissSaveReview(context.req.param("id"));
   return row
     ? context.json({ save: serializeSave(row) })
     : context.json(

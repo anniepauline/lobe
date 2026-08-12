@@ -91,7 +91,7 @@ describeDatabase("server save flow", () => {
     expect(ready.save.needsReview).toBe(true);
   });
 
-  test("searches and accepts intent feedback", async () => {
+  test("searches, dismisses uncertainty, and reprocesses feedback", async () => {
     const searchResponse = await app.request("/v1/saves?query=Rust", {
       headers: authorization,
     });
@@ -100,19 +100,66 @@ describeDatabase("server save flow", () => {
     };
     expect(results.saves.some((save) => save.id === saveId)).toBe(true);
 
-    const feedbackResponse = await app.request(`/v1/saves/${saveId}/intent`, {
-      method: "PATCH",
+    const dismissResponse = await app.request(
+      `/v1/saves/${saveId}/feedback/dismiss`,
+      {
+        method: "POST",
+        headers: authorization,
+      },
+    );
+    const dismissed = (await dismissResponse.json()) as {
+      save: { needsReview: boolean; reviewDismissedAt: string | null };
+    };
+    expect(dismissed.save.needsReview).toBe(true);
+    expect(dismissed.save.reviewDismissedAt).not.toBeNull();
+
+    const feedbackResponse = await app.request(`/v1/saves/${saveId}/feedback`, {
+      method: "POST",
       headers: {
         ...authorization,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ intent: "learn" }),
+      body: JSON.stringify({
+        intent: "learn",
+        reason: "I want to study how the Rust implementation works.",
+      }),
     });
+    expect(feedbackResponse.status).toBe(202);
     const feedback = (await feedbackResponse.json()) as {
-      save: { intent: string; needsReview: boolean };
+      save: {
+        intent: string;
+        needsReview: boolean;
+        status: string;
+        userReason: string;
+      };
     };
 
     expect(feedback.save.intent).toBe("learn");
     expect(feedback.save.needsReview).toBe(false);
+    expect(feedback.save.status).toBe("pending");
+    expect(feedback.save.userReason).toContain("study");
+
+    expect(await processNextJob()).toBe(true);
+    const readyResponse = await app.request(`/v1/saves/${saveId}`, {
+      headers: authorization,
+    });
+    const ready = (await readyResponse.json()) as {
+      save: { intent: string; status: string; why: string };
+    };
+    expect(ready.save.intent).toBe("learn");
+    expect(ready.save.status).toBe("ready");
+    expect(ready.save.why).toContain("Rust implementation");
+  });
+
+  test("rejects empty feedback", async () => {
+    const response = await app.request(`/v1/saves/${saveId}/feedback`, {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ intent: "learn", reason: "" }),
+    });
+    expect(response.status).toBe(400);
   });
 });

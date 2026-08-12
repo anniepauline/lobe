@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { capturedPostSchema, recipeFailureRequestSchema } from "@lobe/shared";
 
 import {
+  applyDirectFeedback,
   compactRecipePrompt,
   EMBEDDING_MODEL,
   fallbackClassification,
@@ -35,6 +36,44 @@ describe("AI fallbacks and prompt budgets", () => {
     const result = fallbackClassification(capture);
     expect(result.intent).toBe("build");
     expect(result.confidence).toBeLessThan(0.78);
+  });
+
+  test("treats direct user feedback as authoritative", async () => {
+    const capture = capturedPostSchema.parse({
+      platform: "x",
+      sourceId: "2087546799200555425",
+      canonicalUrl: "https://x.com/BenjDicken/status/2087546799200555425",
+      pageUrl: "https://x.com/home",
+      content: "A complete Postgres implementation written in Rust.",
+      author: {
+        name: "Ben Dicken",
+        handle: "@BenjDicken",
+        avatarUrl: null,
+      },
+      publishedAt: null,
+      media: [],
+      screenshot: null,
+      capturedAt: new Date().toISOString(),
+      recipeVersion: 1,
+      layoutFingerprint: "x-web-2026-semantic-v1",
+    });
+
+    const classification = applyDirectFeedback(
+      fallbackClassification(capture),
+      {
+        direct: {
+          intent: "learn",
+          reason: "I want to understand the implementation decisions.",
+          excerpt: capture.content,
+          similarity: 1,
+        },
+        similar: [],
+      },
+    );
+
+    expect(classification.intent).toBe("learn");
+    expect(classification.confidence).toBe(1);
+    expect(classification.why).toContain("implementation decisions");
   });
 
   test("never sends an unbounded DOM sketch", () => {

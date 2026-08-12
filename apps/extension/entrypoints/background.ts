@@ -232,6 +232,26 @@ async function handleMessage(
         );
         return { ok: true, data: saveSchema.parse(payload.save) };
       }
+      case "save:feedback": {
+        const payload = await requestApi<{ save: unknown }>(
+          `/v1/saves/${message.id}/feedback`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              intent: message.intent,
+              reason: message.reason,
+            }),
+          },
+        );
+        return { ok: true, data: saveSchema.parse(payload.save) };
+      }
+      case "save:feedback:dismiss": {
+        const payload = await requestApi<{ save: unknown }>(
+          `/v1/saves/${message.id}/feedback/dismiss`,
+          { method: "POST" },
+        );
+        return { ok: true, data: saveSchema.parse(payload.save) };
+      }
       case "recipe:get":
         return { ok: true, data: await getRecipe() };
       case "recipe:failure": {
