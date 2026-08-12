@@ -3,11 +3,9 @@ import {
   ArrowUpRight01Icon,
   Cancel01Icon,
   Delete02Icon,
-  Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { INTENT_IDS, intentById, type IntentId, type Save } from "@lobe/shared";
-import { Badge } from "@lobe/ui/components/badge";
 import { Button } from "@lobe/ui/components/button";
 import {
   Sheet,
@@ -16,11 +14,19 @@ import {
   SheetTitle,
 } from "@lobe/ui/components/sheet";
 import { Textarea } from "@lobe/ui/components/textarea";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 
 import type { LobeApi } from "../api";
 import { useSaveImage } from "../hooks";
 import { intentIcons } from "../icons";
+
+function longDate(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+}
 
 export function SaveDetail({
   save,
@@ -46,14 +52,6 @@ export function SaveDetail({
   const [feedbackError, setFeedbackError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
-  }, [onClose]);
 
   const saveFeedback = async () => {
     if (reason.trim().length < 3) return;
@@ -90,40 +88,37 @@ export function SaveDetail({
         <SheetDescription className="sr-only">
           Review the saved post and teach Lobe why it matters to you.
         </SheetDescription>
+
         <div className="detail-topbar">
-          <Button
-            variant="ghost"
-            size="icon-lg"
+          <button
             type="button"
+            className="detail-close"
             aria-label="Close details"
             onClick={onClose}
           >
             <HugeiconsIcon
               className="mobile-back"
               icon={ArrowLeft01Icon}
-              size={20}
+              size={19}
             />
             <HugeiconsIcon
               className="desktop-close"
               icon={Cancel01Icon}
-              size={20}
+              size={17}
             />
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <a href={save.canonicalUrl} target="_blank" rel="noreferrer">
-              Open on X
-              <HugeiconsIcon icon={ArrowUpRight01Icon} size={15} />
-            </a>
-          </Button>
+          </button>
+          <a
+            className="detail-source"
+            href={save.canonicalUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open on X
+            <HugeiconsIcon icon={ArrowUpRight01Icon} size={14} />
+          </a>
         </div>
 
         <div className="detail-scroll">
-          {imageUrl && (
-            <div className="detail-media">
-              <img src={imageUrl} alt={save.media[0]?.alt ?? "Saved X post"} />
-            </div>
-          )}
-
           <div className="detail-content">
             <div className="detail-author">
               {save.author.avatarUrl ? (
@@ -133,16 +128,27 @@ export function SaveDetail({
               )}
               <div>
                 <strong>{save.author.name}</strong>
-                <small>{save.author.handle}</small>
+                <small>
+                  {save.author.handle} · saved {longDate(save.createdAt)}
+                </small>
               </div>
             </div>
+
             <p className="original-copy">{save.content}</p>
+
+            {imageUrl && (
+              <img
+                className="detail-media"
+                src={imageUrl}
+                alt={save.media[0]?.alt ?? "Saved X post"}
+              />
+            )}
 
             {save.summary && (
               <section className="interpretation">
-                <span>LOBE’S READ</span>
-                <h2>{save.summary}</h2>
-                {save.why && <p>{save.why}</p>}
+                <span>Lobe’s read</span>
+                <p className="interpretation-summary">{save.summary}</p>
+                {save.why && <p className="interpretation-why">{save.why}</p>}
               </section>
             )}
 
@@ -150,7 +156,7 @@ export function SaveDetail({
               <div className="feedback-heading">
                 <h3>Why you saved it</h3>
                 {save.needsReview && (
-                  <Badge variant="secondary">Lobe is unsure</Badge>
+                  <span className="unsure-tag">Lobe is unsure</span>
                 )}
               </div>
               <div className="intent-choices">
@@ -158,11 +164,12 @@ export function SaveDetail({
                   const Icon = intentIcons[intent];
                   const selected = feedbackIntent === intent;
                   return (
-                    <Button
-                      variant="outline"
+                    <button
                       key={intent}
-                      className={selected ? "selected" : ""}
                       type="button"
+                      className={
+                        selected ? "intent-choice selected" : "intent-choice"
+                      }
                       disabled={feedbackState === "saving"}
                       style={
                         {
@@ -174,12 +181,9 @@ export function SaveDetail({
                         setFeedbackState("idle");
                       }}
                     >
-                      <HugeiconsIcon icon={Icon} size={16} />
+                      <HugeiconsIcon icon={Icon} size={15} />
                       {intentById[intent].label}
-                      {selected && (
-                        <HugeiconsIcon icon={Tick02Icon} size={14} />
-                      )}
-                    </Button>
+                    </button>
                   );
                 })}
               </div>
@@ -204,12 +208,10 @@ export function SaveDetail({
                     : feedbackState === "error"
                       ? feedbackError
                       : save.needsReview
-                        ? "Your note clears the uncertainty and reprocesses this save."
-                        : "Update this note whenever Lobe gets your intent wrong."}
+                        ? "Your note clears the uncertainty."
+                        : ""}
                 </span>
                 <Button
-                  size="lg"
-                  className="button primary"
                   type="button"
                   disabled={
                     reason.trim().length < 3 || feedbackState === "saving"
@@ -251,7 +253,6 @@ export function SaveDetail({
                   <Button
                     variant="destructive"
                     size="sm"
-                    className="danger"
                     type="button"
                     disabled={deleting}
                     onClick={() => void remove()}

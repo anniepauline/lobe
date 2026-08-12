@@ -1,9 +1,4 @@
-import {
-  ArrowUpRight01Icon,
-  Cancel01Icon,
-  Search01Icon,
-  Settings02Icon,
-} from "@hugeicons/core-free-icons";
+import { Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   intentById,
@@ -12,28 +7,20 @@ import {
   type TasteProfile,
 } from "@lobe/shared";
 import {
-  Alert,
-  AlertAction,
-  AlertDescription,
-} from "@lobe/ui/components/alert";
-import { Button } from "@lobe/ui/components/button";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
 } from "@lobe/ui/components/dialog";
-import { Input } from "@lobe/ui/components/input";
 import { Skeleton } from "@lobe/ui/components/skeleton";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LobeApi } from "./api";
 import { ConnectionForm } from "./components/ConnectionForm";
-import { IntentFilter, type LibraryFilter } from "./components/IntentFilter";
 import { Logo } from "./components/Logo";
 import { SaveCard } from "./components/SaveCard";
 import { SaveDetail } from "./components/SaveDetail";
-import { TastePanel } from "./components/TastePanel";
+import { Sidebar, type LibraryFilter } from "./components/Sidebar";
 import { loadConnection, storeConnection, type Connection } from "./config";
 import { useDebouncedValue } from "./hooks";
 
@@ -238,147 +225,103 @@ export default function App() {
     );
   }
 
+  const heading = debouncedQuery
+    ? `${saves.length} match${saves.length === 1 ? "" : "es"}`
+    : filter === "review"
+      ? "Needs review"
+      : filter
+        ? intentById[filter].label
+        : "Everything";
+
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <div className="topbar-inner">
-          <a className="brand" href="/" aria-label="Lobe home">
-            <Logo />
-            <span>Lobe</span>
-          </a>
-          <label className="global-search">
-            <HugeiconsIcon icon={Search01Icon} size={18} strokeWidth={1.8} />
-            <Input
-              ref={searchRef}
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search ideas, people, or intent"
-              aria-label="Search saves"
-            />
-            {query ? (
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                type="button"
-                aria-label="Clear search"
-                onClick={() => setQuery("")}
-              >
-                <HugeiconsIcon icon={Cancel01Icon} size={16} />
-              </Button>
-            ) : (
-              <kbd>/</kbd>
-            )}
-          </label>
-          <Button
-            variant="outline"
-            size="icon-lg"
-            className="icon-button"
-            type="button"
-            aria-label="Connection settings"
-            onClick={() => setShowConnection(true)}
-          >
-            <HugeiconsIcon icon={Settings02Icon} size={18} />
-          </Button>
-        </div>
-      </header>
+      <Sidebar
+        filter={filter}
+        profile={profile}
+        onChange={(next) => {
+          setFilter(next);
+          window.scrollTo({ top: 0 });
+        }}
+        onOpenSettings={() => setShowConnection(true)}
+      />
 
-      <main className="workspace">
-        <section className="library">
-          <div className="library-heading">
-            <div>
-              <h1>
-                {debouncedQuery
-                  ? "Search"
-                  : filter === "review"
-                    ? "Needs review"
-                    : "Library"}
-              </h1>
-              <p>
-                {debouncedQuery
-                  ? `${saves.length} match${saves.length === 1 ? "" : "es"} for “${debouncedQuery}”`
-                  : filter === "review"
-                    ? `${profile?.reviewCount ?? saves.length} uncertain save${(profile?.reviewCount ?? saves.length) === 1 ? "" : "s"}`
-                    : `${profile?.totalSaves ?? saves.length} saved thoughts`}
-              </p>
-            </div>
-            <Button
-              asChild
-              variant="outline"
-              size="lg"
-              className="button secondary open-x"
-            >
-              <a href="https://x.com/home" target="_blank" rel="noreferrer">
-                Open X <HugeiconsIcon icon={ArrowUpRight01Icon} size={15} />
-              </a>
-            </Button>
-          </div>
-
-          <IntentFilter
-            active={filter}
-            profile={profile}
-            onChange={setFilter}
+      <main className="library">
+        <label className="hero-search">
+          <HugeiconsIcon icon={Search01Icon} size={21} strokeWidth={1.7} />
+          <input
+            ref={searchRef}
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search your mind…"
+            aria-label="Search saves"
           />
-
-          {error && (
-            <Alert variant="destructive" className="error-banner">
-              <AlertDescription>{error}</AlertDescription>
-              <AlertAction>
-                <Button
-                  variant="link"
-                  size="sm"
-                  type="button"
-                  onClick={() => setShowConnection(true)}
-                >
-                  Check connection
-                </Button>
-              </AlertAction>
-            </Alert>
+          {query ? (
+            <button
+              type="button"
+              className="search-clear"
+              aria-label="Clear search"
+              onClick={() => setQuery("")}
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={15} />
+            </button>
+          ) : (
+            <kbd>/</kbd>
           )}
+        </label>
 
-          {loading ? (
-            <div className="save-grid" aria-label="Loading saves">
-              {Array.from({ length: 6 }, (_, index) => (
-                <Skeleton className="save-skeleton" key={index} />
+        <div className="library-heading">
+          <h1>{heading}</h1>
+          {filter === "review" && !debouncedQuery && (
+            <p>Teach Lobe what these saves mean to you.</p>
+          )}
+        </div>
+
+        {error && (
+          <div className="error-banner" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => setShowConnection(true)}>
+              Check connection
+            </button>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="save-grid" aria-label="Loading saves">
+            {Array.from({ length: 8 }, (_, index) => (
+              <Skeleton
+                className="save-skeleton"
+                key={index}
+                style={{ height: 120 + ((index * 53) % 140) }}
+              />
+            ))}
+          </div>
+        ) : saves.length > 0 ? (
+          <>
+            <div className="save-grid">
+              {saves.map((save) => (
+                <SaveCard
+                  key={save.id}
+                  save={save}
+                  api={api}
+                  onOpen={() => setSelected(save)}
+                />
               ))}
             </div>
-          ) : saves.length > 0 ? (
-            <>
-              <div className="save-grid">
-                {saves.map((save) => (
-                  <SaveCard
-                    key={save.id}
-                    save={save}
-                    api={api}
-                    onOpen={() => setSelected(save)}
-                  />
-                ))}
-              </div>
-              {nextCursor && (
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="button secondary load-more"
-                  type="button"
-                  disabled={loadingMore}
-                  onClick={() => void loadMore()}
-                >
-                  {loadingMore ? "Loading…" : "Load more"}
-                </Button>
-              )}
-            </>
-          ) : (
-            <EmptyState query={debouncedQuery} filter={filter} />
-          )}
-        </section>
-
-        <TastePanel
-          profile={profile}
-          onReview={() => {
-            setFilter("review");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-        />
+            {nextCursor && (
+              <button
+                type="button"
+                className="load-more"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? "Loading…" : "Load more"}
+              </button>
+            )}
+          </>
+        ) : (
+          <EmptyState query={debouncedQuery} filter={filter} />
+        )}
       </main>
 
       {selected && (
@@ -442,18 +385,18 @@ function EmptyState({
 
   return (
     <div className="empty-state">
-      <span className="empty-mark">
-        <Logo size={44} />
-      </span>
+      <Logo size={44} />
       <h2>{heading}</h2>
       <p>{detail}</p>
       {!query && !filter && (
-        <Button asChild size="lg" className="button primary">
-          <a href="https://x.com/home" target="_blank" rel="noreferrer">
-            Bookmark something on X
-            <HugeiconsIcon icon={ArrowUpRight01Icon} size={16} />
-          </a>
-        </Button>
+        <a
+          className="empty-cta"
+          href="https://x.com/home"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Bookmark something on X
+        </a>
       )}
     </div>
   );
