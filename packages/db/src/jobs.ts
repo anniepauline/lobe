@@ -1,4 +1,4 @@
-import { and, asc, eq, lt, lte } from "drizzle-orm";
+import { and, asc, eq, lt, lte, sql } from "drizzle-orm";
 
 import { db } from "./client";
 import { backgroundJobs, type BackgroundJobRow } from "./schema";
@@ -16,7 +16,10 @@ export async function claimNextJob(): Promise<BackgroundJobRow | null> {
           lte(backgroundJobs.availableAt, new Date()),
         ),
       )
-      .orderBy(asc(backgroundJobs.createdAt))
+      .orderBy(
+        sql`case when ${backgroundJobs.type} = 'classify_save' then 0 else 1 end`,
+        asc(backgroundJobs.createdAt),
+      )
       .limit(1)
       .for("update", { skipLocked: true });
 

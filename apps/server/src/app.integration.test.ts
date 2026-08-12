@@ -27,6 +27,20 @@ describeDatabase("server save flow", () => {
     expect(response.status).toBe(401);
   });
 
+  test("rejects malformed capture JSON", async () => {
+    const response = await app.request("/v1/saves", {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json",
+      },
+      body: "{not-json",
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+  });
+
   test("accepts immediately and organizes in the worker", async () => {
     const response = await app.request("/v1/saves", {
       method: "POST",

@@ -7,6 +7,8 @@ import {
   failSave,
   getRecipeFailure,
   getSave,
+  markRecipeFailureIgnored,
+  markRecipeFailureProcessing,
   markSaveProcessing,
   releaseStaleJobs,
   retryOrFailJob,
@@ -94,10 +96,13 @@ export async function processNextJob(): Promise<boolean> {
       nodes: failure.nodes,
       observedAt: failure.lastSeenAt.toISOString(),
     });
+    await markRecipeFailureProcessing(failure.id);
     const discovered = await discoverRecipe(request);
 
     if (discovered) {
       await activateDiscoveredRecipe(failure.layoutFingerprint, discovered);
+    } else {
+      await markRecipeFailureIgnored(failure.id);
     }
 
     await completeJob(job.id);
@@ -108,6 +113,9 @@ export async function processNextJob(): Promise<boolean> {
       const reason =
         error instanceof Error ? error.message : "Background processing failed";
       await failSave(job.saveId, reason);
+    }
+    if (exhausted && job.recipeFailureId) {
+      await markRecipeFailureIgnored(job.recipeFailureId);
     }
 
     return true;

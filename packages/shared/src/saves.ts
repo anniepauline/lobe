@@ -1,7 +1,19 @@
 import { z } from "zod";
 
+import { httpUrlSchema } from "./api";
 import { intentIdSchema } from "./categories";
 import { platformSchema } from "./recipes";
+
+const X_HOSTS = new Set([
+  "x.com",
+  "www.x.com",
+  "twitter.com",
+  "www.twitter.com",
+]);
+const xUrlSchema = httpUrlSchema.refine(
+  (value) => X_HOSTS.has(new URL(value).hostname.toLocaleLowerCase()),
+  "Expected an X or Twitter URL",
+);
 
 export const saveStatusSchema = z.enum([
   "pending",
@@ -14,7 +26,7 @@ export type SaveStatus = z.infer<typeof saveStatusSchema>;
 
 export const mediaItemSchema = z.object({
   type: z.enum(["image", "video"]),
-  url: z.url(),
+  url: httpUrlSchema,
   alt: z.string().max(500).nullable(),
 });
 
@@ -22,8 +34,8 @@ export type MediaItem = z.infer<typeof mediaItemSchema>;
 
 export const authorSchema = z.object({
   name: z.string().min(1).max(160),
-  handle: z.string().min(2).max(64),
-  avatarUrl: z.url().nullable(),
+  handle: z.string().regex(/^@[A-Za-z0-9_]{1,15}$/),
+  avatarUrl: httpUrlSchema.nullable(),
 });
 
 export const screenshotSchema = z.object({
@@ -31,8 +43,8 @@ export const screenshotSchema = z.object({
     .string()
     .max(5_000_000)
     .refine(
-      (value) => value.startsWith("data:image/"),
-      "Expected image data URL",
+      (value) => /^data:image\/(?:png|jpeg|webp);base64,/.test(value),
+      "Expected a supported base64 image data URL",
     ),
   width: z.number().int().positive().max(8_000),
   height: z.number().int().positive().max(8_000),
@@ -40,20 +52,33 @@ export const screenshotSchema = z.object({
 
 export type Screenshot = z.infer<typeof screenshotSchema>;
 
-export const capturedPostSchema = z.object({
-  platform: platformSchema,
-  sourceId: z.string().regex(/^\d+$/),
-  canonicalUrl: z.url(),
-  pageUrl: z.url(),
-  content: z.string().min(1).max(50_000),
-  author: authorSchema,
-  publishedAt: z.iso.datetime().nullable(),
-  media: z.array(mediaItemSchema).max(12),
-  screenshot: screenshotSchema.nullable(),
-  capturedAt: z.iso.datetime(),
-  recipeVersion: z.number().int().positive(),
-  layoutFingerprint: z.string().min(1).max(128),
-});
+export const capturedPostSchema = z
+  .object({
+    platform: platformSchema,
+    sourceId: z.string().max(32).regex(/^\d+$/),
+    canonicalUrl: xUrlSchema,
+    pageUrl: xUrlSchema,
+    content: z.string().min(1).max(50_000),
+    author: authorSchema,
+    publishedAt: z.iso.datetime().nullable(),
+    media: z.array(mediaItemSchema).max(12),
+    screenshot: screenshotSchema.nullable(),
+    capturedAt: z.iso.datetime(),
+    recipeVersion: z.number().int().positive(),
+    layoutFingerprint: z.string().min(1).max(128),
+  })
+  .superRefine((capture, context) => {
+    const statusId = /^\/[^/]+\/status\/(\d+)/.exec(
+      new URL(capture.canonicalUrl).pathname,
+    )?.[1];
+    if (statusId !== capture.sourceId) {
+      context.addIssue({
+        code: "custom",
+        message: "Canonical URL must contain the captured X status id",
+        path: ["canonicalUrl"],
+      });
+    }
+  });
 
 export type CapturedPost = z.infer<typeof capturedPostSchema>;
 
@@ -67,7 +92,7 @@ export const saveSchema = z.object({
   id: z.uuid(),
   platform: platformSchema,
   sourceId: z.string(),
-  canonicalUrl: z.url(),
+  canonicalUrl: xUrlSchema,
   content: z.string(),
   author: authorSchema,
   publishedAt: z.iso.datetime().nullable(),

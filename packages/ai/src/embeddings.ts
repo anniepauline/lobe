@@ -19,5 +19,11 @@ export async function createEmbedding(value: string): Promise<number[] | null> {
     maxRetries: 2,
   });
 
+  if (result.embedding.length !== 1536) {
+    throw new Error(
+      `Embedding model returned ${result.embedding.length} dimensions; Lobe requires 1536`,
+    );
+  }
+
   return result.embedding;
 }

@@ -55,4 +55,31 @@ describe("shared contracts", () => {
 
     expect(result.success).toBe(false);
   });
+
+  test("keeps X capture URLs and image payloads within trusted schemes", () => {
+    const result = capturedPostSchema.safeParse({
+      platform: "x",
+      sourceId: "123",
+      canonicalUrl: "https://example.com/example/status/456",
+      pageUrl: "https://x.com/home",
+      content: "A useful post",
+      author: {
+        name: "Example",
+        handle: "@example",
+        avatarUrl: "javascript:alert(1)",
+      },
+      publishedAt: null,
+      media: [],
+      screenshot: {
+        dataUrl: "data:image/svg+xml;base64,PHN2Zy8+",
+        width: 100,
+        height: 100,
+      },
+      capturedAt: new Date().toISOString(),
+      recipeVersion: 1,
+      layoutFingerprint: "x-web-2026-semantic-v1",
+    });
+
+    expect(result.success).toBe(false);
+  });
 });

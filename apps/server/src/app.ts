@@ -89,9 +89,18 @@ app.get("/health", async (context) => {
 });
 
 app.use("/v1/*", requireAuth);
+app.use("/v1/*", async (context, next) => {
+  await next();
+  context.header("X-Content-Type-Options", "nosniff");
+  if (!context.req.path.endsWith("/screenshot")) {
+    context.header("Cache-Control", "no-store");
+  }
+});
 
 app.post("/v1/saves", async (context) => {
-  const body = createSaveRequestSchema.safeParse(await context.req.json());
+  const body = createSaveRequestSchema.safeParse(
+    await context.req.json().catch(() => null),
+  );
   if (!body.success) {
     return context.json(
       {
@@ -197,7 +206,9 @@ app.get("/v1/saves/:id", async (context) => {
 });
 
 app.patch("/v1/saves/:id/intent", async (context) => {
-  const body = updateIntentRequestSchema.safeParse(await context.req.json());
+  const body = updateIntentRequestSchema.safeParse(
+    await context.req.json().catch(() => null),
+  );
   if (!body.success) {
     return context.json(
       {
@@ -257,6 +268,7 @@ app.get("/v1/saves/:id/screenshot", async (context) => {
     headers: {
       "Cache-Control": "private, max-age=31536000, immutable",
       "Content-Type": match[1],
+      "X-Content-Type-Options": "nosniff",
     },
   });
 });
@@ -272,7 +284,9 @@ app.get("/v1/recipes/x", async (context) => {
 });
 
 app.post("/v1/recipes/failures", async (context) => {
-  const body = recipeFailureRequestSchema.safeParse(await context.req.json());
+  const body = recipeFailureRequestSchema.safeParse(
+    await context.req.json().catch(() => null),
+  );
   if (!body.success) {
     return context.json(
       {

@@ -39,6 +39,15 @@ function includesAny(value: string, terms: string[]): boolean {
   return terms.some((term) => value.includes(term));
 }
 
+const fallbackAlternatives: Record<IntentId, IntentId[]> = {
+  try: ["buy", "reference"],
+  build: ["learn", "reference"],
+  learn: ["reference", "build"],
+  reference: ["learn", "share"],
+  buy: ["try", "reference"],
+  share: ["reference", "learn"],
+};
+
 export function fallbackClassification(post: CapturedPost): Classification {
   const text = post.content.toLowerCase();
   let intent: IntentId = "reference";
@@ -76,9 +85,7 @@ export function fallbackClassification(post: CapturedPost): Classification {
     summary,
     topics: [],
     why: "A local fallback was used because OpenAI is not configured.",
-    alternatives: ["reference"].filter(
-      (alternative): alternative is IntentId => alternative !== intent,
-    ),
+    alternatives: fallbackAlternatives[intent],
   });
 }
 

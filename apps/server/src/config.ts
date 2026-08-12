@@ -11,9 +11,11 @@ const environmentSchema = z.object({
 
 const environment = environmentSchema.parse(process.env);
 
+const unsafeProductionTokens = new Set(["lobe-local-dev", "change-me"]);
+
 if (
   environment.NODE_ENV === "production" &&
-  environment.LOBE_API_TOKEN === "lobe-local-dev"
+  unsafeProductionTokens.has(environment.LOBE_API_TOKEN)
 ) {
   throw new Error("LOBE_API_TOKEN must be configured in production");
 }

@@ -78,7 +78,7 @@ export const classificationSchema = z.object({
   summary: z.string().min(1).max(280),
   topics: z.array(z.string().min(1).max(40)).max(6),
   why: z.string().min(1).max(240),
-  alternatives: z.array(intentIdSchema).max(3),
+  alternatives: z.array(intentIdSchema).min(2).max(3),
 });
 
 export type Classification = z.infer<typeof classificationSchema>;
