@@ -4,15 +4,26 @@ export const platformSchema = z.literal("x");
 
 export type Platform = z.infer<typeof platformSchema>;
 
+export const safeSelectorSchema = z
+  .string()
+  .min(1)
+  .max(500)
+  .refine(
+    (selector) =>
+      !/[{};]/.test(selector) &&
+      !selector.toLowerCase().includes("javascript:"),
+    "Selector contains unsupported characters",
+  );
+
 export const selectorSetSchema = z.object({
-  post: z.string().min(1),
-  unsavedControl: z.string().min(1),
-  savedControl: z.string().min(1),
-  actionGroup: z.string().min(1),
-  content: z.string().min(1),
-  userName: z.string().min(1),
-  statusLink: z.string().min(1),
-  media: z.string().min(1),
+  post: safeSelectorSchema,
+  unsavedControl: safeSelectorSchema,
+  savedControl: safeSelectorSchema,
+  actionGroup: safeSelectorSchema,
+  content: safeSelectorSchema,
+  userName: safeSelectorSchema,
+  statusLink: safeSelectorSchema,
+  media: safeSelectorSchema,
 });
 
 export const selectorRecipeSchema = z.object({
