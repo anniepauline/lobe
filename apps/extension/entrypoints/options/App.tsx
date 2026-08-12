@@ -59,9 +59,11 @@ export default function App() {
       });
       setSaveState("saved");
       setMessage(
-        status.reachable
+        status.authorized
           ? "Connected. Lobe is ready on X."
-          : "Saved. Start the server to complete the connection.",
+          : status.reachable
+            ? "Saved. The server rejected this API token."
+            : "Saved. Start the server to complete the connection.",
       );
     } catch (error) {
       setSaveState("error");

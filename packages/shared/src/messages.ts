@@ -6,6 +6,7 @@ import type { CapturedPost, Save } from "./saves";
 export interface ExtensionStatus {
   configured: boolean;
   reachable: boolean;
+  authorized: boolean;
   model: string | null;
   ai: "configured" | "fallback" | null;
 }

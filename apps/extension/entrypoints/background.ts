@@ -8,6 +8,7 @@ import {
   type ExtensionRequest,
   type ExtensionResponse,
   type ExtensionStatus,
+  type SelectorRecipe,
 } from "@lobe/shared";
 
 import { isConfigured, loadSettings, saveSettings } from "../lib/settings";
@@ -17,6 +18,14 @@ interface HealthResponse {
   ai: "configured" | "fallback";
   model: string;
 }
+
+interface CachedRecipe {
+  recipe: unknown;
+  checkedAt: unknown;
+}
+
+const RECIPE_CACHE_KEY = "lobe:recipe:x";
+const RECIPE_CACHE_TTL = 5 * 60_000;
 
 class ApiError extends Error {
   constructor(
@@ -81,19 +90,91 @@ async function requestApi<T>(
 async function getStatus(): Promise<ExtensionStatus> {
   const settings = await loadSettings();
   if (!isConfigured(settings)) {
-    return { configured: false, reachable: false, model: null, ai: null };
+    return {
+      configured: false,
+      reachable: false,
+      authorized: false,
+      model: null,
+      ai: null,
+    };
   }
 
   try {
     const health = await requestApi<HealthResponse>("/health", {}, false);
+    try {
+      await requestApi<unknown>("/v1/saves?limit=1");
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.status !== 401) {
+        throw error;
+      }
+
+      return {
+        configured: true,
+        reachable: true,
+        authorized: false,
+        model: health.model,
+        ai: health.ai,
+      };
+    }
+
     return {
       configured: true,
       reachable: health.status === "ok",
+      authorized: true,
       model: health.model,
       ai: health.ai,
     };
   } catch {
-    return { configured: true, reachable: false, model: null, ai: null };
+    return {
+      configured: true,
+      reachable: false,
+      authorized: false,
+      model: null,
+      ai: null,
+    };
+  }
+}
+
+async function loadCachedRecipe(): Promise<{
+  recipe: SelectorRecipe;
+  checkedAt: number;
+} | null> {
+  const stored = await browser.storage.local.get(RECIPE_CACHE_KEY);
+  const cached = stored[RECIPE_CACHE_KEY] as CachedRecipe | undefined;
+  const recipe = selectorRecipeSchema.safeParse(cached?.recipe);
+  if (
+    !recipe.success ||
+    typeof cached?.checkedAt !== "number" ||
+    !Number.isFinite(cached.checkedAt)
+  ) {
+    return null;
+  }
+
+  return { recipe: recipe.data, checkedAt: cached.checkedAt };
+}
+
+async function saveCachedRecipe(
+  recipe: SelectorRecipe,
+  checkedAt = Date.now(),
+): Promise<void> {
+  await browser.storage.local.set({
+    [RECIPE_CACHE_KEY]: { recipe, checkedAt },
+  });
+}
+
+async function getRecipe(): Promise<SelectorRecipe> {
+  const cached = await loadCachedRecipe();
+  if (cached && Date.now() - cached.checkedAt < RECIPE_CACHE_TTL) {
+    return cached.recipe;
+  }
+
+  try {
+    const payload = await requestApi<{ recipe: unknown }>("/v1/recipes/x");
+    const recipe = selectorRecipeSchema.parse(payload.recipe);
+    await saveCachedRecipe(recipe);
+    return recipe;
+  } catch {
+    return cached?.recipe ?? bundledXRecipe;
   }
 }
 
@@ -104,13 +185,13 @@ async function handleMessage(
     switch (message.type) {
       case "settings:get":
         return { ok: true, data: await loadSettings() };
-      case "settings:set":
-        return {
-          ok: true,
-          data: await saveSettings(
-            extensionSettingsSchema.parse(message.settings),
-          ),
-        };
+      case "settings:set": {
+        const settings = await saveSettings(
+          extensionSettingsSchema.parse(message.settings),
+        );
+        await browser.storage.local.remove(RECIPE_CACHE_KEY);
+        return { ok: true, data: settings };
+      }
       case "status:get":
         return { ok: true, data: await getStatus() };
       case "save:create": {
@@ -151,27 +232,21 @@ async function handleMessage(
         );
         return { ok: true, data: saveSchema.parse(payload.save) };
       }
-      case "recipe:get": {
-        try {
-          const payload = await requestApi<{ recipe: unknown }>(
-            "/v1/recipes/x",
-          );
-          return {
-            ok: true,
-            data: selectorRecipeSchema.parse(payload.recipe),
-          };
-        } catch {
-          return { ok: true, data: bundledXRecipe };
-        }
-      }
-      case "recipe:failure":
+      case "recipe:get":
+        return { ok: true, data: await getRecipe() };
+      case "recipe:failure": {
         await requestApi("/v1/recipes/failures", {
           method: "POST",
           body: JSON.stringify(
             recipeFailureRequestSchema.parse(message.failure),
           ),
         });
+        const cached = await loadCachedRecipe();
+        if (cached) {
+          await saveCachedRecipe(cached.recipe, 0);
+        }
         return { ok: true, data: { queued: true } };
+      }
     }
   } catch (error) {
     return { ok: false, error: errorMessage(error) };

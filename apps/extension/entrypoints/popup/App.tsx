@@ -17,6 +17,7 @@ export default function App() {
         setStatus({
           configured: true,
           reachable: false,
+          authorized: false,
           model: null,
           ai: null,
         }),
@@ -27,9 +28,11 @@ export default function App() {
     ? { label: "Checking connection", tone: "checking" }
     : !status.configured
       ? { label: "Setup needed", tone: "offline" }
-      : status.reachable
+      : status.reachable && status.authorized
         ? { label: "Ready on X", tone: "online" }
-        : { label: "Server offline", tone: "offline" };
+        : status.reachable
+          ? { label: "Check API token", tone: "offline" }
+          : { label: "Server offline", tone: "offline" };
 
   return (
     <main>

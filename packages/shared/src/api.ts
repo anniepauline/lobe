@@ -2,6 +2,11 @@ import { z } from "zod";
 
 import { intentIdSchema } from "./categories";
 
+export const httpUrlSchema = z.url().refine((value) => {
+  const protocol = new URL(value).protocol;
+  return protocol === "http:" || protocol === "https:";
+}, "Expected an HTTP or HTTPS URL");
+
 export const apiErrorSchema = z.object({
   error: z.object({
     code: z.string(),
@@ -19,7 +24,7 @@ export const saveListQuerySchema = z.object({
 });
 
 export const extensionSettingsSchema = z.object({
-  apiUrl: z.url(),
+  apiUrl: httpUrlSchema,
   apiToken: z.string().max(500),
   showConfirmation: z.boolean(),
   captureScreenshot: z.boolean(),
