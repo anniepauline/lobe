@@ -34,14 +34,14 @@ app.use(
     origin: (origin) => {
       if (
         origin.startsWith("chrome-extension://") ||
-        origin.startsWith("moz-extension://")
+        origin.startsWith("moz-extension://") ||
+        (serverConfig.nodeEnv !== "production" &&
+          /^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin))
       ) {
         return origin;
       }
 
-      return origin === serverConfig.appOrigin
-        ? origin
-        : serverConfig.appOrigin;
+      return origin === serverConfig.appOrigin ? origin : null;
     },
     allowHeaders: ["Authorization", "Content-Type"],
     allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
