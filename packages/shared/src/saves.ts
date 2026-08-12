@@ -18,6 +18,8 @@ export const mediaItemSchema = z.object({
   alt: z.string().max(500).nullable(),
 });
 
+export type MediaItem = z.infer<typeof mediaItemSchema>;
+
 export const authorSchema = z.object({
   name: z.string().min(1).max(160),
   handle: z.string().min(2).max(64),
