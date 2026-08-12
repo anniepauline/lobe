@@ -13,6 +13,10 @@ export const queryClient = postgres(databaseUrl, {
 
 export const db = drizzle({ client: queryClient, schema });
 
+export async function pingDatabase(): Promise<void> {
+  await queryClient`select 1`;
+}
+
 export async function closeDatabase(): Promise<void> {
   await queryClient.end();
 }
