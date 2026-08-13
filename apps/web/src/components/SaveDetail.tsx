@@ -19,6 +19,7 @@ import { useState, type CSSProperties } from "react";
 import type { LobeApi } from "../api";
 import { useSaveImage } from "../hooks";
 import { intentIcons } from "../icons";
+import { PostText } from "./PostText";
 
 function longDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -133,7 +134,9 @@ export function SaveDetail({
               </div>
             </div>
 
-            <p className="original-copy">{save.content}</p>
+            <p className="original-copy">
+              <PostText text={save.content} />
+            </p>
 
             {imageUrl && (
               <img

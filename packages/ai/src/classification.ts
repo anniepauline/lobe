@@ -5,7 +5,7 @@ import {
   type Classification,
   type IntentId,
 } from "@lobe/shared";
-import { generateText, Output } from "ai";
+import { generateText, Output, type ModelMessage } from "ai";
 
 import {
   CLASSIFICATION_MODEL,
@@ -61,6 +61,30 @@ function formatFeedback(feedback: ClassificationFeedback): string {
     : "No similar feedback yet.";
 
   return `${direct}\n\nSimilar past feedback:\n${similar}`;
+}
+
+export function buildClassificationMessages(
+  post: CapturedPost,
+  feedback: ClassificationFeedback,
+): ModelMessage[] {
+  return [
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: `${formatPost(post)}\n\n${formatFeedback(feedback)}`,
+        },
+        ...post.media
+          .filter((item) => item.type === "image")
+          .map((item) => ({
+            type: "file" as const,
+            data: new URL(item.url),
+            mediaType: "image",
+          })),
+      ],
+    },
+  ];
 }
 
 export function applyDirectFeedback(
@@ -172,7 +196,7 @@ Available intents:
 ${intentGuide}
 
 Choose the best intent. Confidence measures confidence in the user's intent, not confidence in the post's facts. Similar feedback is a preference signal only when the posts genuinely resemble each other. Direct feedback is authoritative. Keep the summary useful in search, topics concise, and alternatives ordered by likelihood.`,
-    prompt: `${formatPost(post)}\n\n${formatFeedback(feedback)}`,
+    messages: buildClassificationMessages(post, feedback),
     maxOutputTokens: 700,
     providerOptions: {
       openai: getOpenAiResponseOptions(),

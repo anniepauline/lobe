@@ -23,7 +23,6 @@ describe("on-page feedback prompt", () => {
     const submissions: Array<{ intent: string; reason: string }> = [];
 
     toast.showFeedback({
-      summary: "A practical guide to HNSW search.",
       intents: ["learn", "reference", "build"],
       selectedIntent: "learn",
       onSubmit: async (intent, reason) => {
@@ -35,6 +34,12 @@ describe("on-page feedback prompt", () => {
     expect(toast.host.style.pointerEvents).toBe("none");
     expect(toast.host.style.position).toBe("fixed");
     expect(toast.isFeedbackVisible()).toBe(true);
+    expect(toast.root.querySelector(".prompt-expiry")?.textContent).toContain(
+      "30 seconds",
+    );
+    expect(toast.root.querySelector(".detail")?.textContent).not.toContain(
+      "HNSW",
+    );
 
     const buttons = [
       ...toast.root.querySelectorAll<HTMLButtonElement>(".intent-list button"),
@@ -57,7 +62,6 @@ describe("on-page feedback prompt", () => {
     let submissions = 0;
 
     toast.showFeedback({
-      summary: "A saved post.",
       intents: ["reference", "learn"],
       selectedIntent: "reference",
       onSubmit: async () => {
@@ -73,5 +77,27 @@ describe("on-page feedback prompt", () => {
     expect(toast.root.querySelector(".prompt-error")?.textContent).toContain(
       "short reason",
     );
+  });
+
+  test("closes immediately when the user chooses Not now", async () => {
+    installDom();
+    const toast = new LobeToast();
+    let dismissals = 0;
+
+    toast.showFeedback({
+      intents: ["reference", "learn"],
+      selectedIntent: "reference",
+      onSubmit: async () => undefined,
+      onDismiss: async () => {
+        dismissals += 1;
+        toast.dismiss();
+      },
+    });
+
+    toast.root.querySelector<HTMLButtonElement>(".quiet")?.click();
+    await Promise.resolve();
+
+    expect(dismissals).toBe(1);
+    expect(toast.isVisible()).toBe(false);
   });
 });

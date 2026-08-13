@@ -466,6 +466,19 @@ a {
   -webkit-line-clamp: 5;
 }
 
+.post-link {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-decoration-color: rgba(96, 165, 250, 0.5);
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+
+a.post-link:hover {
+  color: #93c5fd;
+  text-decoration-color: currentColor;
+}
+
 .author-row {
   display: flex;
   min-width: 0;

@@ -204,6 +204,12 @@ async function handleMessage(
           data: createSaveResponseSchema.parse(payload).save,
         };
       }
+      case "save:screenshot":
+        await requestApi<void>(`/v1/saves/${message.id}/screenshot`, {
+          method: "PUT",
+          body: JSON.stringify({ screenshot: message.screenshot }),
+        });
+        return { ok: true, data: { queued: true } };
       case "save:remove":
         try {
           await requestApi<never>(

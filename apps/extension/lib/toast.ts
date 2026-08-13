@@ -12,7 +12,6 @@ export interface ToastButton {
 }
 
 export interface FeedbackPrompt {
-  summary: string;
   intents: IntentId[];
   selectedIntent: IntentId;
   onSubmit: (intent: IntentId, reason: string) => Promise<void>;
@@ -32,6 +31,7 @@ export class LobeToast {
   readonly root: ShadowRoot;
   readonly #reactRoot: Root;
   #dismissTimer: number | null = null;
+  #feedbackVersion = 0;
   #mode: "idle" | "toast" | "feedback" = "idle";
 
   constructor() {
@@ -56,6 +56,7 @@ export class LobeToast {
       button:disabled { cursor:wait; opacity:.55; }
       .error .mark { background:#fb7185; color:#4c0519; }
       .success .mark { background:#34d399; color:#022c22; }
+      .prompt-expiry { margin:-2px 0 11px; color:#71717a; font-size:11px; text-align:right; }
       .prompt-label { margin:14px 0 5px; color:#71717a; font-size:10px; font-weight:750; letter-spacing:.09em; text-transform:uppercase; }
       .intent-list { display:flex; flex-wrap:wrap; gap:7px; }
       .intent-list button { padding:7px 9px; }
@@ -85,8 +86,14 @@ export class LobeToast {
     }
 
     this.#mode = "feedback";
+    this.#feedbackVersion += 1;
     flushSync(() =>
-      this.#reactRoot.render(createElement(FeedbackToast, { prompt })),
+      this.#reactRoot.render(
+        createElement(FeedbackToast, {
+          key: this.#feedbackVersion,
+          prompt,
+        }),
+      ),
     );
   }
 
