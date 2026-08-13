@@ -81,12 +81,13 @@ bun run db:migrate
 bun run db:seed
 ```
 
-Run the API and web app in separate terminals:
+Run the API and web app together:
 
 ```bash
-bun run dev:server
-bun run dev:web
+bun run dev
 ```
+
+Use `bun run dev:extension` separately while developing the Chrome extension.
 
 Open [http://localhost:5173](http://localhost:5173), then connect with the same
 `LOBE_API_TOKEN`.
