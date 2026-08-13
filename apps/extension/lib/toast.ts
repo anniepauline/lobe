@@ -61,9 +61,10 @@ export class LobeToast {
       .intent-list { display:flex; flex-wrap:wrap; gap:7px; }
       .intent-list button { padding:7px 9px; }
       .intent-list button[aria-pressed="true"] { border-color:var(--intent); color:#fff; background:color-mix(in srgb,var(--intent) 22%,#09090b); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--intent) 52%,transparent); }
-      textarea { display:block; width:100%; min-height:76px; resize:vertical; margin-top:10px; border:1px solid #27272a; border-radius:10px; outline:0; padding:10px 11px; color:#fafafa; background:#09090b; font-size:13px; line-height:1.4; }
+      textarea { display:block; width:100%; min-height:76px; resize:vertical; margin-top:10px; border:1px solid #27272a; border-radius:10px; outline:0; padding:10px 11px; color:#fafafa; background:#0b0b0d; font-size:13px; line-height:1.4; transition:border-color 120ms ease,background-color 120ms ease; }
       textarea::placeholder { color:#52525b; }
-      textarea:focus { border-color:#52525b; box-shadow:0 0 0 3px rgba(63,63,70,.35); }
+      textarea:hover { border-color:#3f3f46; }
+      textarea:focus { border-color:#71717a; background:#0f0f12; }
       .prompt-actions { display:flex; align-items:center; justify-content:flex-end; gap:8px; margin-top:10px; }
       .prompt-actions .quiet { border-color:transparent; color:#a1a1aa; background:transparent; }
       .prompt-actions .submit { border-color:#fafafa; color:#09090b; background:#fafafa; }

@@ -80,20 +80,31 @@ input[type="url"],
 input[type="text"],
 input[type="password"] {
   width: 100%;
-  height: 43px;
+  height: 40px;
   margin-top: 8px;
   border: 1px solid #27272a;
   border-radius: 9px;
   outline: none;
   padding: 0 12px;
   color: #fafafa;
-  background: #000;
+  background: #0b0b0d;
   font-size: 14px;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+input::placeholder {
+  color: #52525b;
+}
+
+input:hover {
+  border-color: #3f3f46;
 }
 
 input:focus {
-  border-color: #52525b;
-  box-shadow: 0 0 0 3px rgba(63, 63, 70, 0.3);
+  border-color: #71717a;
+  background: #0f0f12;
 }
 
 .token-field {
@@ -101,19 +112,19 @@ input:focus {
 }
 
 .token-field input {
-  padding-right: 45px;
+  padding-right: 42px;
 }
 
 .token-field button {
   position: absolute;
-  right: 4px;
-  bottom: 4px;
+  right: 5px;
+  bottom: 5px;
   display: grid;
-  width: 35px;
-  height: 35px;
+  width: 30px;
+  height: 30px;
   place-items: center;
   border: 0;
-  color: #a1a1aa;
+  color: #71717a;
   background: transparent;
 }
 
