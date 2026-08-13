@@ -34,7 +34,8 @@ button[data-testid="removeBookmark"]
 That keeps X responsible for the exact SVG, spacing, hover state, animation, and
 saved state. Lobe extracts only the nearest post, including quoted-post
 boundaries, media, author, canonical status URL, and an optional rendered
-screenshot.
+screenshot. The post is saved first, then the screenshot is captured and
+attached separately so rendering it never delays the bookmark.
 
 The selectors live in a versioned recipe. When a layout no longer matches, the
 extension reports a compact semantic DOM sketch with no post text or handles.
@@ -119,6 +120,7 @@ For live extension development, run `bun run dev:extension` instead.
 native X bookmark click
   -> persist capture and queue job in one transaction
   -> return 202 immediately
+  -> capture and attach the optional screenshot without blocking the user
   -> classify intent in the worker
   -> create pgvector embedding
   -> mark ready and update the library

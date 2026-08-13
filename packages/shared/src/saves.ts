@@ -88,6 +88,14 @@ export const createSaveRequestSchema = z.object({
 
 export type CreateSaveRequest = z.infer<typeof createSaveRequestSchema>;
 
+export const attachScreenshotRequestSchema = z.object({
+  screenshot: screenshotSchema,
+});
+
+export type AttachScreenshotRequest = z.infer<
+  typeof attachScreenshotRequestSchema
+>;
+
 export const saveSchema = z.object({
   id: z.uuid(),
   platform: platformSchema,

@@ -3,6 +3,7 @@ import { capturedPostSchema, recipeFailureRequestSchema } from "@lobe/shared";
 
 import {
   applyDirectFeedback,
+  buildClassificationMessages,
   CLASSIFICATION_MODEL,
   compactRecipePrompt,
   EMBEDDING_MODEL,
@@ -76,6 +77,63 @@ describe("AI fallbacks and prompt budgets", () => {
     expect(classification.intent).toBe("learn");
     expect(classification.confidence).toBe(1);
     expect(classification.why).toContain("implementation decisions");
+  });
+
+  test("passes extracted post images to the classification model", () => {
+    const capture = capturedPostSchema.parse({
+      platform: "x",
+      sourceId: "2087546799200555426",
+      canonicalUrl: "https://x.com/BenjDicken/status/2087546799200555426",
+      pageUrl: "https://x.com/home",
+      content: "A diagram of a new storage engine.",
+      author: {
+        name: "Ben Dicken",
+        handle: "@BenjDicken",
+        avatarUrl: null,
+      },
+      publishedAt: null,
+      media: [
+        {
+          type: "image",
+          url: "https://pbs.twimg.com/media/storage-engine.jpg",
+          alt: "Storage engine diagram",
+        },
+        {
+          type: "video",
+          url: "https://video.twimg.com/storage-engine.mp4",
+          alt: null,
+        },
+      ],
+      screenshot: null,
+      capturedAt: new Date().toISOString(),
+      recipeVersion: 1,
+      layoutFingerprint: "x-web-2026-semantic-v1",
+    });
+
+    const [message] = buildClassificationMessages(capture, {
+      direct: null,
+      similar: [],
+    });
+
+    expect(message?.role).toBe("user");
+    expect(message?.content).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "file",
+          data: new URL("https://pbs.twimg.com/media/storage-engine.jpg"),
+          mediaType: "image",
+        }),
+      ]),
+    );
+    expect(
+      Array.isArray(message?.content) &&
+        message.content.some(
+          (part) =>
+            part.type === "file" &&
+            part.data instanceof URL &&
+            part.data.hostname === "video.twimg.com",
+        ),
+    ).toBe(false);
   });
 
   test("never sends an unbounded DOM sketch", () => {

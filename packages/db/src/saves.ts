@@ -3,6 +3,7 @@ import {
   type CapturedPost,
   type Classification,
   type IntentId,
+  type Screenshot,
 } from "@lobe/shared";
 import {
   and,
@@ -142,6 +143,24 @@ export async function deleteSaveByUrl(canonicalUrl: string): Promise<boolean> {
     .returning({ id: saves.id });
 
   return removed.length > 0;
+}
+
+export async function attachSaveScreenshot(
+  id: string,
+  screenshot: Screenshot,
+): Promise<boolean> {
+  const updated = await db
+    .update(saves)
+    .set({
+      screenshotData: screenshot.dataUrl,
+      screenshotWidth: screenshot.width,
+      screenshotHeight: screenshot.height,
+      updatedAt: new Date(),
+    })
+    .where(eq(saves.id, id))
+    .returning({ id: saves.id });
+
+  return updated.length > 0;
 }
 
 export async function listSaves(
