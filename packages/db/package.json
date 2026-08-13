@@ -7,13 +7,14 @@
     "./schema": "./src/schema.ts"
   },
   "scripts": {
-    "benchmark:vector": "bun run scripts/benchmark-vector-search.ts",
+    "benchmark:vector": "bun --env-file=../../.env run scripts/benchmark-vector-search.ts",
     "build": "tsc -p tsconfig.json",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio",
+    "db:generate": "bun --env-file=../../.env run drizzle-kit generate",
+    "db:migrate": "bun --env-file=../../.env run drizzle-kit migrate",
+    "db:seed": "bun --env-file=../../.env run scripts/seed-demo.ts",
+    "db:studio": "bun --env-file=../../.env run drizzle-kit studio",
     "test": "bun test",
-    "test:db": "RUN_DB_TESTS=1 bun test src/repositories.test.ts",
+    "test:db": "RUN_DB_TESTS=1 bun --env-file=../../.env test src/repositories.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

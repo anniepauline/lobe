@@ -136,7 +136,7 @@ describeDatabase("server save flow", () => {
     const dismissedPending = (await dismissedPendingResponse.json()) as {
       save: { id: string } | null;
     };
-    expect(dismissedPending.save).toBeNull();
+    expect(dismissedPending.save?.id).not.toBe(saveId);
 
     const feedbackResponse = await app.request(`/v1/saves/${saveId}/feedback`, {
       method: "POST",

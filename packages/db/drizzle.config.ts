@@ -1,11 +1,15 @@
 import { defineConfig } from "drizzle-kit";
 
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required (Neon connection string).");
+}
+
 export default defineConfig({
   dialect: "postgresql",
   out: "./drizzle",
   schema: "./src/schema.ts",
   dbCredentials: {
-    url:
-      process.env.DATABASE_URL ?? "postgresql://lobe:lobe@localhost:5434/lobe",
+    url: databaseUrl,
   },
 });

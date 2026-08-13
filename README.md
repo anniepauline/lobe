@@ -60,7 +60,8 @@ The original product exploration is preserved in
 
 ## Local setup
 
-Requirements: [Bun](https://bun.sh/) and Docker.
+Requirements: [Bun](https://bun.sh/) and a [Neon](https://neon.tech) Postgres
+database with the `vector` and `pg_trgm` extensions enabled.
 
 ```bash
 bun install
@@ -68,15 +69,16 @@ cp .env.example .env
 openssl rand -hex 24
 ```
 
-Put the generated value in `LOBE_API_TOKEN`. Add `OPENAI_API_KEY` to use live AI
-classification and semantic embeddings. The OpenAI key stays on the server and
-must never be put in a `VITE_` or `WXT_PUBLIC_` variable.
+Put the generated value in `LOBE_API_TOKEN` and your Neon connection string in
+`DATABASE_URL`. Add `OPENAI_API_KEY` to use live AI classification and semantic
+embeddings. The OpenAI key stays on the server and must never be put in a
+`VITE_` or `WXT_PUBLIC_` variable.
 
-Start and migrate PostgreSQL:
+Migrate the database, and optionally seed a demo library:
 
 ```bash
-bun run db:up
 bun run db:migrate
+bun run db:seed
 ```
 
 Run the API and web app in separate terminals:
@@ -141,8 +143,8 @@ Run the complete local gate:
 bun run check
 ```
 
-The database integration suites are explicit because they require the Docker
-database:
+The database integration suites are explicit because they require a reachable
+`DATABASE_URL`:
 
 ```bash
 bun run --filter '@lobe/db' test:db

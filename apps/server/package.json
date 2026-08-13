@@ -4,10 +4,10 @@
   "type": "module",
   "scripts": {
     "build": "bun build src/index.ts --outdir dist --target bun",
-    "dev": "bun --hot src/index.ts",
-    "start": "bun src/index.ts",
+    "dev": "bun --env-file=../../.env --hot src/index.ts",
+    "start": "bun --env-file=../../.env src/index.ts",
     "test": "bun test",
-    "test:db": "RUN_DB_TESTS=1 LOBE_API_TOKEN=test-token OPENAI_API_KEY= bun test src/app.integration.test.ts",
+    "test:db": "RUN_DB_TESTS=1 LOBE_API_TOKEN=test-token OPENAI_API_KEY= bun --env-file=../../.env test src/app.integration.test.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

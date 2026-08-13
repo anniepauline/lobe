@@ -1,4 +1,6 @@
-import { closeDatabase, queryClient } from "../src/client";
+import { closeDatabase, getQueryClient } from "../src/client";
+
+const queryClient = getQueryClient();
 
 const rowCount = Number(process.env.VECTOR_BENCH_ROWS ?? 10_000);
 const iterations = Number(process.env.VECTOR_BENCH_ITERATIONS ?? 100);
