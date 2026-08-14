@@ -40,6 +40,18 @@ export class LobeToast {
     this.host.style.cssText =
       "position:fixed;inset:auto 20px 24px auto;z-index:2147483647;pointer-events:none";
     this.root = this.host.attachShadow({ mode: "closed" });
+    for (const eventType of ["keydown", "keypress", "keyup"]) {
+      this.root.addEventListener(eventType, (event) => event.stopPropagation());
+      window.addEventListener(
+        eventType,
+        (event) => {
+          if (event.composedPath().includes(this.host)) {
+            event.stopImmediatePropagation();
+          }
+        },
+        true,
+      );
+    }
     this.root.innerHTML = `<style>
       :host { color-scheme: dark; }
       * { box-sizing:border-box; }
