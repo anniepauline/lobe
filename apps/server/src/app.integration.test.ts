@@ -91,6 +91,32 @@ describeDatabase("server save flow", () => {
     expect(ready.save.needsReview).toBe(true);
   });
 
+  test("attaches a screenshot after the bookmark is accepted", async () => {
+    const attachResponse = await app.request(`/v1/saves/${saveId}/screenshot`, {
+      method: "PUT",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        screenshot: {
+          dataUrl: "data:image/png;base64,aGVsbG8=",
+          width: 320,
+          height: 180,
+        },
+      }),
+    });
+    expect(attachResponse.status).toBe(204);
+
+    const screenshotResponse = await app.request(
+      `/v1/saves/${saveId}/screenshot`,
+      { headers: authorization },
+    );
+    expect(screenshotResponse.status).toBe(200);
+    expect(screenshotResponse.headers.get("Content-Type")).toBe("image/png");
+    expect(await screenshotResponse.text()).toBe("hello");
+  });
+
   test("searches, dismisses uncertainty, and reprocesses feedback", async () => {
     const searchResponse = await app.request("/v1/saves?query=Rust", {
       headers: authorization,

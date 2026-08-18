@@ -92,7 +92,6 @@ function showIntentReview(toast: LobeToast, save: Save): void {
   }
 
   toast.showFeedback({
-    summary: save.summary ?? "Tell Lobe what made this worth keeping.",
     intents: candidates,
     selectedIntent,
     onSubmit: async (intent, reason) => {
@@ -109,14 +108,12 @@ function showIntentReview(toast: LobeToast, save: Save): void {
       });
     },
     onDismiss: async () => {
-      const updated = await sendExtensionMessage<Save>({
+      toast.dismiss();
+      await sendExtensionMessage<Save>({
         type: "save:feedback:dismiss",
         id: save.id,
-      });
-      const intent = updated.intent ?? selectedIntent;
-      toast.show({
-        title: `Kept in ${intentById[intent].label}`,
-        detail: "Marked as unsure so you can revisit it later.",
+      }).catch((error: unknown) => {
+        console.debug("Lobe could not persist the dismissed review", error);
       });
     },
   });
@@ -191,13 +188,34 @@ async function savePost(
     toast.show({ title: "Saving to Lobe…", duration: 0 });
   }
 
-  const screenshot = settings.captureScreenshot
-    ? await capturePostScreenshot(post)
-    : null;
   const saved = await sendExtensionMessage<Save>({
     type: "save:create",
-    capture: { ...capture, screenshot },
+    capture,
   });
+
+  if (settings.showConfirmation) {
+    toast.show({
+      title: "Saved to Lobe",
+      detail: "Organization is continuing in the background.",
+      tone: "success",
+    });
+  }
+
+  if (settings.captureScreenshot) {
+    void capturePostScreenshot(post)
+      .then(async (captured) => {
+        if (!captured || isCancelled()) return;
+        await sendExtensionMessage({
+          type: "save:screenshot",
+          id: saved.id,
+          screenshot: captured,
+        });
+      })
+      .catch((error: unknown) => {
+        console.debug("Lobe could not attach the post screenshot", error);
+      });
+  }
+
   void waitUntilOrganized(saved)
     .then((organized) => {
       if (!isCancelled()) {
@@ -253,7 +271,6 @@ export default defineContentScript({
     const pendingSaves = new Map<string, Promise<void>>();
     const cancelledSaves = new Set<string>();
     const reportedLayouts = new Set<string>();
-    let checkingReview = false;
 
     void sendExtensionMessage<SelectorRecipe>({ type: "recipe:get" }).then(
       (recipe) => {
@@ -357,29 +374,7 @@ export default defineContentScript({
       );
     };
 
-    const checkPendingReview = async () => {
-      if (checkingReview || toast.isVisible()) {
-        return;
-      }
-
-      checkingReview = true;
-      try {
-        const save = await sendExtensionMessage<Save | null>({
-          type: "save:feedback:pending",
-        });
-        if (save) {
-          showIntentReview(toast, save);
-        }
-      } catch {
-        // Connection errors are already surfaced by the extension popup.
-      } finally {
-        checkingReview = false;
-      }
-    };
-
     window.setTimeout(() => void checkRecipe(), 8_000);
     window.setInterval(() => void checkRecipe(), 30_000);
-    window.setTimeout(() => void checkPendingReview(), 6_000);
-    window.setInterval(() => void checkPendingReview(), 15_000);
   },
 });

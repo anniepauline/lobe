@@ -2,7 +2,7 @@ import { intentById, type IntentId } from "@lobe/shared";
 import { Button } from "@lobe/ui/components/button";
 import { Card } from "@lobe/ui/components/card";
 import { Textarea } from "@lobe/ui/components/textarea";
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { Logo } from "../ui/Logo";
 import type { FeedbackPrompt, ToastMessage } from "./toast";
@@ -16,6 +16,7 @@ function Mark() {
 }
 
 export function FeedbackToast({ prompt }: { prompt: FeedbackPrompt }) {
+  const [secondsLeft, setSecondsLeft] = useState(30);
   const [selectedIntent, setSelectedIntent] = useState<IntentId>(
     prompt.selectedIntent,
   );
@@ -23,19 +24,43 @@ export function FeedbackToast({ prompt }: { prompt: FeedbackPrompt }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const reasonRef = useRef<HTMLTextAreaElement>(null);
+  const settledRef = useRef(false);
 
   const dismiss = async () => {
+    if (settledRef.current) return;
+    settledRef.current = true;
     setBusy(true);
     setError("");
     try {
       await prompt.onDismiss();
     } catch (cause) {
+      settledRef.current = false;
       setBusy(false);
       setError(
         cause instanceof Error ? cause.message : "Could not dismiss this.",
       );
     }
   };
+
+  useEffect(() => {
+    const expiresAt = Date.now() + 30_000;
+    const countdown = window.setInterval(() => {
+      const remaining = Math.max(
+        0,
+        Math.ceil((expiresAt - Date.now()) / 1_000),
+      );
+      setSecondsLeft(remaining);
+    }, 1_000);
+    const expiry = window.setTimeout(() => {
+      setSecondsLeft(0);
+      void dismiss();
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(countdown);
+      window.clearTimeout(expiry);
+    };
+  }, []);
 
   const submit = async () => {
     const explanation = reasonRef.current?.value.trim() ?? "";
@@ -45,11 +70,13 @@ export function FeedbackToast({ prompt }: { prompt: FeedbackPrompt }) {
       return;
     }
 
+    settledRef.current = true;
     setBusy(true);
     setError("");
     try {
       await prompt.onSubmit(selectedIntentRef.current, explanation);
     } catch (cause) {
+      settledRef.current = false;
       setBusy(false);
       setError(
         cause instanceof Error ? cause.message : "Could not save feedback.",
@@ -59,11 +86,14 @@ export function FeedbackToast({ prompt }: { prompt: FeedbackPrompt }) {
 
   return (
     <Card className="toast feedback" aria-label="Lobe bookmark feedback">
+      <div className="prompt-expiry">
+        Will be gone in {secondsLeft} second{secondsLeft === 1 ? "" : "s"}
+      </div>
       <div className="head">
         <Mark />
-        <div className="title">I’m not sure where this belongs</div>
+        <div className="title">Where should Lobe file this bookmark?</div>
       </div>
-      <div className="detail">{prompt.summary}</div>
+      <div className="detail">Choose the closest fit and tell Lobe why.</div>
       <div className="prompt-label">Best fit</div>
       <div className="intent-list">
         {prompt.intents.map((intent) => (

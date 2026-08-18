@@ -116,7 +116,7 @@ export default function App() {
                 />
                 <Button
                   variant="ghost"
-                  size="icon-lg"
+                  size="icon-sm"
                   type="button"
                   aria-label={showToken ? "Hide API token" : "Show API token"}
                   onClick={() => setShowToken((visible) => !visible)}

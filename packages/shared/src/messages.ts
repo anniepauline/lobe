@@ -1,7 +1,12 @@
 import type { IntentId } from "./categories";
 import type { ExtensionSettings } from "./api";
 import type { RecipeFailureRequest, SelectorRecipe } from "./recipes";
-import type { CapturedPost, Save, SubmitFeedbackRequest } from "./saves";
+import type {
+  CapturedPost,
+  Save,
+  Screenshot,
+  SubmitFeedbackRequest,
+} from "./saves";
 
 export interface ExtensionStatus {
   configured: boolean;
@@ -15,6 +20,7 @@ export type ExtensionRequest =
   | { type: "settings:get" }
   | { type: "settings:set"; settings: ExtensionSettings }
   | { type: "save:create"; capture: CapturedPost }
+  | { type: "save:screenshot"; id: string; screenshot: Screenshot }
   | { type: "save:remove"; canonicalUrl: string }
   | { type: "save:get"; id: string }
   | { type: "save:feedback:pending" }
