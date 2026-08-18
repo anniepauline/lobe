@@ -79,6 +79,37 @@ describe("on-page feedback prompt", () => {
     );
   });
 
+  test("keeps feedback keystrokes from reaching X", () => {
+    const testWindow = installDom();
+    const toast = new LobeToast();
+    const pageEvents: string[] = [];
+
+    toast.showFeedback({
+      summary: "A saved post.",
+      intents: ["reference", "learn"],
+      selectedIntent: "reference",
+      onSubmit: async () => undefined,
+      onDismiss: async () => undefined,
+    });
+
+    for (const type of ["keydown", "keypress", "keyup"]) {
+      testWindow.addEventListener(type, () => pageEvents.push(`window:${type}`));
+      document.addEventListener(type, () => pageEvents.push(type));
+    }
+
+    const reason = toast.root.querySelector<HTMLTextAreaElement>("textarea")!;
+    for (const type of ["keydown", "keypress", "keyup"]) {
+      reason.dispatchEvent(
+        new testWindow.KeyboardEvent(type, {
+          key: "a",
+          bubbles: true,
+          composed: true,
+        }) as unknown as Event,
+      );
+    }
+
+    expect(pageEvents).toEqual([]);
+  });
   test("closes immediately when the user chooses Not now", async () => {
     installDom();
     const toast = new LobeToast();
@@ -101,3 +132,4 @@ describe("on-page feedback prompt", () => {
     expect(toast.isVisible()).toBe(false);
   });
 });
+
