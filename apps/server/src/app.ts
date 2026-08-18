@@ -5,6 +5,7 @@ import {
   CLASSIFICATION_MODEL,
 } from "@lobe/ai";
 import {
+  attachSaveScreenshot,
   createSave,
   deleteSaveByUrl,
   dismissSaveReview,
@@ -21,6 +22,7 @@ import {
   updateSaveIntent,
 } from "@lobe/db";
 import {
+  attachScreenshotRequestSchema,
   createSaveRequestSchema,
   recipeFailureRequestSchema,
   saveListQuerySchema,
@@ -53,7 +55,7 @@ app.use(
       return origin === serverConfig.appOrigin ? origin : null;
     },
     allowHeaders: ["Authorization", "Content-Type"],
-    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     maxAge: 86_400,
   }),
 );
@@ -221,6 +223,40 @@ app.get("/v1/saves/:id", async (context) => {
   const row = await getSave(context.req.param("id"));
   return row
     ? context.json({ save: serializeSave(row) })
+    : context.json(
+        {
+          error: {
+            code: "not_found",
+            message: "That bookmark does not exist.",
+          },
+        },
+        404,
+      );
+});
+
+app.put("/v1/saves/:id/screenshot", async (context) => {
+  const body = attachScreenshotRequestSchema.safeParse(
+    await context.req.json().catch(() => null),
+  );
+  if (!body.success) {
+    return context.json(
+      {
+        error: {
+          code: "invalid_screenshot",
+          message:
+            body.error.issues[0]?.message ?? "Invalid bookmark screenshot.",
+        },
+      },
+      400,
+    );
+  }
+
+  const attached = await attachSaveScreenshot(
+    context.req.param("id"),
+    body.data.screenshot,
+  );
+  return attached
+    ? context.body(null, 204)
     : context.json(
         {
           error: {

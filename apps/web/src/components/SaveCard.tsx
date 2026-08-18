@@ -7,6 +7,7 @@ import type { CSSProperties } from "react";
 
 import type { LobeApi } from "../api";
 import { useSaveImage } from "../hooks";
+import { PostText } from "./PostText";
 
 function shortDate(value: string): string {
   return new Intl.DateTimeFormat(undefined, {
@@ -68,7 +69,9 @@ export function SaveCard({
               </span>
             )}
           </div>
-          <p className="save-copy">{body}</p>
+          <p className="save-copy">
+            <PostText text={body} interactive={false} />
+          </p>
           <div className="author-row">
             {save.author.avatarUrl ? (
               <img className="avatar" src={save.author.avatarUrl} alt="" />
